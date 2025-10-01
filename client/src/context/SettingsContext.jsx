@@ -1,4 +1,4 @@
-// client/src/context/SettingsContext.jsx
+// src/context/SettingsContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 
@@ -20,24 +20,24 @@ export const SettingsProvider = ({ children }) => {
     lineHeight: 'normal',
     letterSpacing: 'normal',
     fontFamily: 'lexend',
-    
+
     // Visual
     backgroundColor: 'default',
     textColor: 'default',
     highlightColor: 'blue',
     backgroundOverlay: false,
-    
+
     // Dyslexia-friendly
     dyslexiaFont: true,
     wordSpacing: 'normal',
     paragraphSpacing: 'normal',
-    
+
     // Reading
     readingSpeed: 1.0,
     autoPlay: false,
     highlightReading: true,
     showProgress: true,
-    
+
     // Language
     language: 'en'
   })
@@ -71,7 +71,7 @@ export const SettingsProvider = ({ children }) => {
 
   const applySettings = () => {
     const root = document.documentElement
-    
+
     // Font family
     const fontFamilyMap = {
       lexend: '"Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -80,7 +80,7 @@ export const SettingsProvider = ({ children }) => {
       verdana: 'Verdana, sans-serif'
     }
     root.style.setProperty('--font-family', fontFamilyMap[settings.fontFamily] || fontFamilyMap.lexend)
-    
+
     // Font size
     const fontSizeMap = {
       small: '14px',
@@ -90,7 +90,7 @@ export const SettingsProvider = ({ children }) => {
       xxl: '24px'
     }
     root.style.setProperty('--font-size', fontSizeMap[settings.fontSize] || '16px')
-    
+
     // Line height
     const lineHeightMap = {
       tight: '1.25',
@@ -99,7 +99,7 @@ export const SettingsProvider = ({ children }) => {
       loose: '2'
     }
     root.style.setProperty('--line-height', lineHeightMap[settings.lineHeight] || '1.5')
-    
+
     // Letter spacing
     const letterSpacingMap = {
       tight: '-0.025em',
@@ -108,7 +108,7 @@ export const SettingsProvider = ({ children }) => {
       wider: '0.05em'
     }
     root.style.setProperty('--letter-spacing', letterSpacingMap[settings.letterSpacing] || '0')
-    
+
     // Word spacing
     const wordSpacingMap = {
       tight: '0',
@@ -117,14 +117,14 @@ export const SettingsProvider = ({ children }) => {
       wider: '0.3em'
     }
     root.style.setProperty('--word-spacing', wordSpacingMap[settings.wordSpacing] || '0.1em')
-    
+
     // Background overlay
     if (settings.backgroundOverlay) {
       root.classList.add('background-overlay')
     } else {
       root.classList.remove('background-overlay')
     }
-    
+
     // Dyslexia font
     if (settings.dyslexiaFont) {
       root.classList.add('dyslexia-friendly')
@@ -152,7 +152,7 @@ export const SettingsProvider = ({ children }) => {
       showProgress: true,
       language: 'en'
     }
-    
+
     setSettings(defaultSettings)
     localStorage.setItem('voxa-settings', JSON.stringify(defaultSettings))
     return defaultSettings

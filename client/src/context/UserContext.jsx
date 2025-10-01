@@ -1,5 +1,5 @@
-// client/src/context/UserContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react'
+// src/context/UserContext.jsx
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import { api } from '../utils/api'
 
@@ -37,6 +37,18 @@ export const UserProvider = ({ children }) => {
   })
   const [loading, setLoading] = useState(false)
 
+  // Rate limiting: track last fetch time
+  const lastFetchRef = useRef({
+    profile: 0,
+    progress: 0,
+    achievements: 0,
+    settings: 0,
+    stats: 0
+  })
+
+  // Minimum time between requests (5 minutes)
+  const MIN_FETCH_INTERVAL = 5 * 60 * 1000
+
   useEffect(() => {
     if (user) {
       fetchUserData()
@@ -57,24 +69,85 @@ export const UserProvider = ({ children }) => {
     })
   }
 
+  const shouldFetch = (key) => {
+    const now = Date.now()
+    const lastFetch = lastFetchRef.current[key]
+    return now - lastFetch > MIN_FETCH_INTERVAL
+  }
+
+  const updateLastFetch = (key) => {
+    lastFetchRef.current[key] = Date.now()
+  }
+
   const fetchUserData = async () => {
     if (!user) return
 
     setLoading(true)
     try {
-      const [profileRes, progressRes, achievementsRes, settingsRes, statsRes] = await Promise.all([
-        api.get(`/users/profile/${user.id}`).catch(() => ({ data: null })),
-        api.get(`/users/progress/${user.id}`).catch(() => ({ data: [] })),
-        api.get(`/users/achievements/${user.id}`).catch(() => ({ data: [] })),
-        api.get(`/users/settings/${user.id}`).catch(() => ({ data: {} })),
-        api.get(`/reading/stats/${user.id}`).catch(() => ({ data: {} }))
-      ])
+      const promises = []
 
-      if (profileRes.data) setUserProfile(profileRes.data)
-      if (progressRes.data) setReadingProgress(Array.isArray(progressRes.data) ? progressRes.data : [])
-      if (achievementsRes.data) setAchievements(Array.isArray(achievementsRes.data) ? achievementsRes.data : [])
-      if (settingsRes.data) setSettings(prev => ({ ...prev, ...settingsRes.data }))
-      if (statsRes.data) setStats(prev => ({ ...prev, ...statsRes.data }))
+      // Only fetch if enough time has passed
+      if (shouldFetch('profile')) {
+        promises.push(
+          api.get(`/users/profile/${user.id}`)
+            .then(res => {
+              setUserProfile(res.data)
+              updateLastFetch('profile')
+              return res
+            })
+            .catch(() => ({ data: null }))
+        )
+      }
+
+      if (shouldFetch('progress')) {
+        promises.push(
+          api.get(`/reading/activity/${user.id}?limit=10`)
+            .then(res => {
+              setReadingProgress(Array.isArray(res.data) ? res.data : [])
+              updateLastFetch('progress')
+              return res
+            })
+            .catch(() => ({ data: [] }))
+        )
+      }
+
+      if (shouldFetch('achievements')) {
+        promises.push(
+          api.get(`/users/achievements/${user.id}`)
+            .then(res => {
+              setAchievements(Array.isArray(res.data) ? res.data : [])
+              updateLastFetch('achievements')
+              return res
+            })
+            .catch(() => ({ data: [] }))
+        )
+      }
+
+      if (shouldFetch('settings')) {
+        promises.push(
+          api.get(`/users/settings/${user.id}`)
+            .then(res => {
+              if (res.data) setSettings(prev => ({ ...prev, ...res.data }))
+              updateLastFetch('settings')
+              return res
+            })
+            .catch(() => ({ data: {} }))
+        )
+      }
+
+      if (shouldFetch('stats')) {
+        promises.push(
+          api.get(`/reading/stats/${user.id}`)
+            .then(res => {
+              if (res.data) setStats(prev => ({ ...prev, ...res.data }))
+              updateLastFetch('stats')
+              return res
+            })
+            .catch(() => ({ data: {} }))
+        )
+      }
+
+      await Promise.allSettled(promises)
     } catch (error) {
       console.error('Error fetching user data:', error)
     } finally {
@@ -86,8 +159,6 @@ export const UserProvider = ({ children }) => {
     try {
       const response = await api.put(`/users/profile/${user.id}`, profileData)
       setUserProfile(response.data)
-      // Refresh user data
-      fetchUserData()
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error updating profile:', error)
@@ -100,6 +171,7 @@ export const UserProvider = ({ children }) => {
       const response = await api.put(`/users/settings/${user.id}`, newSettings)
       setSettings(response.data)
       applySettingsToDocument(response.data)
+      updateLastFetch('settings')
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error updating settings:', error)
@@ -144,16 +216,30 @@ export const UserProvider = ({ children }) => {
         ...progress
       })
 
-      // Update local state immediately
+      // Update local state immediately for better UX
       setStats(prev => ({
         ...prev,
         totalTextsRead: progress.completed ? prev.totalTextsRead + 1 : prev.totalTextsRead,
         totalReadingTime: prev.totalReadingTime + (progress.duration || 0)
       }))
 
-      // Fetch fresh stats only
-      const statsRes = await api.get(`/reading/stats/${user.id}`).catch(() => ({ data: {} }))
-      if (statsRes.data) setStats(prev => ({ ...prev, ...statsRes.data }))
+      // Only fetch fresh stats if enough time has passed
+      if (shouldFetch('stats')) {
+        const statsRes = await api.get(`/reading/stats/${user.id}`).catch(() => ({ data: {} }))
+        if (statsRes.data) {
+          setStats(prev => ({ ...prev, ...statsRes.data }))
+          updateLastFetch('stats')
+        }
+      }
+
+      // Only fetch fresh activity if enough time has passed
+      if (shouldFetch('progress')) {
+        const activityRes = await api.get(`/reading/activity/${user.id}?limit=10`).catch(() => ({ data: [] }))
+        if (activityRes.data) {
+          setReadingProgress(Array.isArray(activityRes.data) ? activityRes.data : [])
+          updateLastFetch('progress')
+        }
+      }
 
       return { success: true, data: response.data }
     } catch (error) {
@@ -166,6 +252,7 @@ export const UserProvider = ({ children }) => {
     try {
       const response = await api.post(`/users/achievements/${user.id}`, achievement)
       setAchievements(response.data)
+      updateLastFetch('achievements')
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error adding achievement:', error)
@@ -177,6 +264,7 @@ export const UserProvider = ({ children }) => {
     try {
       const response = await api.put(`/reading/streak/${user.id}`)
       setStats(prev => ({ ...prev, readingStreak: response.data.streak }))
+      updateLastFetch('stats')
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error updating streak:', error)

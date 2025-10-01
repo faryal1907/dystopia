@@ -1,4 +1,4 @@
-// client/src/context/ThemeContext.jsx
+// src/context/ThemeContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const ThemeContext = createContext({})
@@ -19,12 +19,12 @@ export const ThemeProvider = ({ children }) => {
     // Load theme preferences from localStorage
     const savedTheme = localStorage.getItem('theme')
     const savedContrast = localStorage.getItem('highContrast')
-    
+
     if (savedTheme === 'dark') {
       setIsDark(true)
       document.documentElement.classList.add('dark')
     }
-    
+
     if (savedContrast === 'true') {
       setHighContrast(true)
       document.documentElement.classList.add('high-contrast')
@@ -34,7 +34,7 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = () => {
     const newTheme = !isDark
     setIsDark(newTheme)
-    
+
     if (newTheme) {
       document.documentElement.classList.add('dark')
       localStorage.setItem('theme', 'dark')
@@ -47,7 +47,7 @@ export const ThemeProvider = ({ children }) => {
   const toggleHighContrast = () => {
     const newContrast = !highContrast
     setHighContrast(newContrast)
-    
+
     if (newContrast) {
       document.documentElement.classList.add('high-contrast')
       localStorage.setItem('highContrast', 'true')

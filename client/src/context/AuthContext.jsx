@@ -1,4 +1,4 @@
-// client/src/context/AuthContext.jsx
+// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
       }

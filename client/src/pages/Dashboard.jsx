@@ -1,9 +1,27 @@
-// client/src/pages/Dashboard.jsx
+// src/pages/Dashboard.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { BookOpen, Volume2, Languages, Focus, TrendingUp, Award, Clock, Target, BarChart3, Calendar, Plus, ArrowRight, Zap, Trophy, Flame } from 'lucide-react'
+import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
+
+// Helper function defined at the top to avoid initialization issues
+const formatTimeAgo = (date) => {
+  if (!date) return 'Just now'
+
+  const now = new Date()
+  const sessionDate = new Date(date)
+  const diffInMs = now - sessionDate
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+
+  if (diffInHours < 1) return 'Just now'
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
+  const diffInDays = Math.floor(diffInHours / 24)
+  if (diffInDays === 1) return 'Yesterday'
+  if (diffInDays < 7) return `${diffInDays} days ago`
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) > 1 ? 's' : ''} ago`
+  return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) > 1 ? 's' : ''} ago`
+}
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -12,26 +30,34 @@ const Dashboard = () => {
   const [weeklyGoal, setWeeklyGoal] = useState({ current: 0, target: 7 })
   const [lastFetch, setLastFetch] = useState(0)
 
-  // Memoized recent activity to reduce re-renders
+  // Predefined achievements that users can earn
+  const predefinedAchievements = [
+    { id: 'first_read', title: 'First Steps', description: 'Completed your first reading session', threshold: 1, type: 'texts_read' },
+    { id: 'early_bird', title: 'Early Bird', description: 'Read before 9 AM', threshold: 1, type: 'special' },
+    { id: 'five_sessions', title: 'Getting Started', description: 'Completed 5 reading sessions', threshold: 5, type: 'texts_read' },
+    { id: 'ten_day_streak', title: 'Consistency Master', description: 'Maintained a 10-day reading streak', threshold: 10, type: 'streak' },
+    { id: 'speed_reader', title: 'Speed Reader', description: 'Read 5 texts in one day', threshold: 5, type: 'daily_reads' },
+    { id: 'multilingual', title: 'Multilingual', description: 'Used translation feature 10 times', threshold: 10, type: 'translations' },
+    { id: 'focused', title: 'Focused Reader', description: 'Used focus mode for 30 minutes', threshold: 1800000, type: 'focus_time' },
+    { id: 'century', title: 'Century Club', description: 'Read 100 texts', threshold: 100, type: 'texts_read' },
+    { id: 'marathon', title: 'Marathon Reader', description: 'Read for 5 hours total', threshold: 18000000, type: 'reading_time' }
+  ]
+
+  // Memoized recent activity
   const recentActivity = useMemo(() => {
     if (readingProgress && readingProgress.length > 0) {
       return readingProgress.slice(0, 5).map((session, index) => ({
         id: session._id || `session-${index}`,
         text: session.title || `Reading Session ${index + 1}`,
-        progress: session.progress?.percentage || Math.floor(Math.random() * 100),
+        progress: session.progress?.percentage || 0,
         time: formatTimeAgo(session.createdAt || new Date()),
         type: session.sessionType || 'regular'
       }))
     }
-    // Fallback mock data when no sessions exist
-    return [
-      { id: 1, text: 'The Great Gatsby Chapter 1', progress: 100, time: '2 hours ago', type: 'text-to-speech' },
-      { id: 2, text: 'Spanish Article: Technology', progress: 75, time: '5 hours ago', type: 'translation' },
-      { id: 3, text: 'Scientific Paper: Climate Change', progress: 45, time: '1 day ago', type: 'focus-mode' }
-    ]
+    return []
   }, [readingProgress])
 
-  // Set greeting once on component mount
+  // Set greeting once on mount
   useEffect(() => {
     const hour = new Date().getHours()
     if (hour < 12) setGreeting('Good morning')
@@ -39,11 +65,11 @@ const Dashboard = () => {
     else setGreeting('Good evening')
   }, [])
 
-  // Optimized data fetching - only fetch when necessary
+  // Optimized data fetching - only when user logs in
   const fetchDataOptimized = useCallback(async () => {
     const now = Date.now()
-    // Only fetch if more than 5 minutes have passed since last fetch
-    if (now - lastFetch > 300000) { // 5 minutes
+    // Only fetch if more than 5 minutes have passed
+    if (now - lastFetch > 300000) {
       try {
         await fetchUserData()
         setLastFetch(now)
@@ -55,29 +81,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
+      // Initial fetch
       fetchDataOptimized()
-      
-      // Reduced frequency: only update when tab is visible and less frequently
-      const interval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          fetchDataOptimized()
-        }
-      }, 300000) // Changed from 10 seconds to 5 minutes
-      
-      return () => clearInterval(interval)
     }
-  }, [user, fetchDataOptimized])
+  }, [user])
 
   // Calculate weekly goal progress
   useEffect(() => {
-    if (readingProgress) {
+    if (readingProgress && readingProgress.length > 0) {
       const today = new Date()
       const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()))
+      startOfWeek.setHours(0, 0, 0, 0)
+
       const weeklyProgress = readingProgress.filter(session => {
         const sessionDate = new Date(session.createdAt)
         return sessionDate >= startOfWeek
       }).length
-      
+
       setWeeklyGoal({ current: Math.min(weeklyProgress, 7), target: 7 })
     }
   }, [readingProgress])
@@ -86,22 +106,11 @@ const Dashboard = () => {
     return <Navigate to="/login" replace />
   }
 
-  const formatTimeAgo = (date) => {
-    const now = new Date()
-    const sessionDate = new Date(date)
-    const diffInHours = Math.floor((now - sessionDate) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours} hours ago`
-    const diffInDays = Math.floor(diffInHours / 24)
-    return `${diffInDays} days ago`
-  }
-
   const formatReadingTime = (milliseconds) => {
     if (!milliseconds) return '0m'
     const hours = Math.floor(milliseconds / (1000 * 60 * 60))
     const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60))
-    
+
     if (hours > 0) return `${hours}h ${minutes}m`
     return `${minutes}m`
   }
@@ -165,11 +174,7 @@ const Dashboard = () => {
     }
   ]
 
-  const recentAchievements = achievements?.slice(-3).reverse() || [
-    { id: 1, title: 'First Steps', description: 'Completed your first reading session', earnedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-    { id: 2, title: 'Speed Reader', description: 'Read 5 texts in one day', earnedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-    { id: 3, title: 'Multilingual', description: 'Used translation feature', earnedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-  ]
+  const recentAchievements = achievements?.slice(-3).reverse() || []
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
@@ -210,7 +215,7 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          {dashboardStats.map((stat, index) => {
+          {dashboardStats.map((stat) => {
             const Icon = stat.icon
             return (
               <div
@@ -243,13 +248,10 @@ const Dashboard = () => {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quickActions.map((action, index) => {
+            {quickActions.map((action) => {
               const Icon = action.icon
               return (
-                <div
-                  key={action.title}
-                  className="group"
-                >
+                <div key={action.title} className="group">
                   <Link to={action.href}>
                     <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] hover:shadow-xl transition-all duration-300 group-hover:border-primary-300">
                       <div className={`inline-flex p-3 bg-gradient-to-r ${action.color} rounded-xl mb-4`}>
@@ -281,15 +283,15 @@ const Dashboard = () => {
               Recent Activity
             </h2>
             <div className="space-y-4">
-              {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-                <div key={activity.id || index} className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg">
+              {recentActivity.length > 0 ? recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg">
                   <div className="flex-1">
                     <h3 className="font-medium text-[var(--text-primary)] dyslexia-text mb-1">
                       {activity.text}
                     </h3>
                     <div className="flex items-center space-x-4">
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${activity.progress}%` }}
                         />
@@ -320,8 +322,8 @@ const Dashboard = () => {
               Recent Achievements
             </h2>
             <div className="space-y-4">
-              {recentAchievements.length > 0 ? recentAchievements.map((achievement, index) => (
-                <div key={achievement.id || index} className="flex items-start space-x-4 p-4 bg-[var(--bg-secondary)] rounded-lg">
+              {recentAchievements.length > 0 ? recentAchievements.map((achievement) => (
+                <div key={achievement.id} className="flex items-start space-x-4 p-4 bg-[var(--bg-secondary)] rounded-lg">
                   <div className="p-2 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-800 dark:to-orange-800 rounded-full">
                     <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                   </div>
@@ -348,7 +350,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Reading Goal */}
+        {/* Weekly Goal */}
         <div className="mt-8 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold dyslexia-text">
@@ -362,15 +364,15 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="bg-white/20 rounded-full h-3 mb-4">
-            <div 
+            <div
               className="bg-white h-3 rounded-full transition-all duration-300"
               style={{ width: `${(weeklyGoal.current / weeklyGoal.target) * 100}%` }}
             />
           </div>
           <p className="text-primary-100 dyslexia-text">
-            {weeklyGoal.current === weeklyGoal.target 
-              ? "🎉 Congratulations! You've reached your weekly goal!" 
-              : `Great progress! ${weeklyGoal.target - weeklyGoal.current} more days to reach your weekly goal.`
+            {weeklyGoal.current === weeklyGoal.target
+              ? "🎉 Congratulations! You've reached your weekly goal!"
+              : `Great progress! ${weeklyGoal.target - weeklyGoal.current} more ${weeklyGoal.target - weeklyGoal.current === 1 ? 'day' : 'days'} to reach your weekly goal.`
             }
           </p>
         </div>
