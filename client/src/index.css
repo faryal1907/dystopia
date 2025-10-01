@@ -1,4 +1,5 @@
 /* client/src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,6 +44,13 @@
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --border-color: #e5e7eb;
+  
+  /* Typography variables */
+  --font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --base-font-size: 16px;
+  --base-line-height: 1.5;
+  --base-letter-spacing: 0;
+  --word-spacing: 0.1em;
 }
 
 .dark {
@@ -94,35 +102,68 @@
 }
 
 body {
-  font-family: 'OpenDyslexic', 'Comic Sans MS', cursive;
-  line-height: 1.75;
-  letter-spacing: 0.025em;
+  font-family: var(--font-family);
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+  letter-spacing: var(--base-letter-spacing);
+  word-spacing: var(--word-spacing);
   font-weight: 400;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Dyslexia-friendly text settings */
 .dyslexia-text {
-  font-family: 'OpenDyslexic', 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
   line-height: 1.8;
   letter-spacing: 0.1em;
   word-spacing: 0.2em;
   font-weight: 400;
 }
 
+.dyslexia-friendly {
+  --font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dyslexia-friendly .dyslexia-text {
+  line-height: 2;
+  letter-spacing: 0.15em;
+  word-spacing: 0.3em;
+}
+
 /* High contrast mode */
 .high-contrast {
   --text-primary: #000000;
   --bg-primary: #ffffff;
+  --bg-secondary: #f0f0f0;
   --border-color: #000000;
 }
 
 .dark.high-contrast {
   --text-primary: #ffffff;
   --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
   --border-color: #ffffff;
+}
+
+/* Background overlay */
+.background-overlay::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark.background-overlay::before {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 /* Animations */
@@ -142,6 +183,11 @@ body {
   }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Focus mode styles */
 .focus-mode {
   background: rgba(0, 0, 0, 0.95);
@@ -150,8 +196,9 @@ body {
 
 .focus-mode .reading-line {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 12px;
+  animation: pulse 2s infinite;
 }
 
 /* Reading progress bar */
@@ -175,4 +222,118 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-500);
+}
+
+/* Improved button styles */
+button {
+  font-family: var(--font-family);
+  transition: all 0.2s ease;
+}
+
+button:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Form elements */
+input, textarea, select {
+  font-family: var(--font-family);
+  transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: var(--primary-500);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .focus-mode {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .reading-line {
+    background: #f0f0f0 !important;
+    border: 1px solid #ccc !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  body {
+    font-size: calc(var(--base-font-size) * 0.9);
+  }
+  
+  .dyslexia-text {
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    word-spacing: 0.15em;
+  }
+}
+
+/* Large text mode */
+@media (min-width: 1200px) {
+  .dyslexia-text {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Loading states */
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Error states */
+.error {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Success states */
+.success {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+/* Utility classes for dynamic font sizing */
+.text-dynamic {
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+  letter-spacing: var(--base-letter-spacing);
+  word-spacing: var(--word-spacing);
+}
+
+/* Enhanced focus mode styles */
+.focus-mode .current-word {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  animation: pulse 1s infinite;
+}
+
+.focus-mode .completed-word {
+  opacity: 0.6;
+}
+
+.focus-mode .upcoming-word {
+  opacity: 0.4;
 }

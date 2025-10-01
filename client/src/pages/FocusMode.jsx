@@ -11,11 +11,14 @@ import {
   Settings,
   Eye,
   Type,
-  Palette
+  Palette,
+  Volume2
 } from 'lucide-react'
 import { ttsService } from '../utils/textToSpeech'
+import { useUser } from '../context/UserContext'
 
 const FocusMode = () => {
+  const { saveReadingProgress } = useUser()
   const [text, setText] = useState('')
   const [isFocusMode, setIsFocusMode] = useState(false)
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
@@ -27,20 +30,29 @@ const FocusMode = () => {
     backgroundColor: 'dark',
     highlightColor: 'blue',
     showProgress: true,
-    autoAdvance: false
+    autoAdvance: true,
+    autoScroll: true,
+    wordByWord: false
   })
   const [showSettings, setShowSettings] = useState(false)
   const [lines, setLines] = useState([])
+  const [words, setWords] = useState([])
+  const [currentWordIndex, setCurrentWordIndex] = useState(0)
+  const [startTime, setStartTime] = useState(null)
   
   const intervalRef = useRef(null)
   const focusRef = useRef(null)
+  const currentLineRef = useRef(null)
 
   useEffect(() => {
     if (text) {
-      // Split text into sentences for better focus reading
+      // Split text into sentences and words for better focus reading
       const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim())
+      const allWords = text.split(/\s+/).filter(word => word.trim())
       setLines(sentences)
+      setWords(allWords)
       setCurrentLineIndex(0)
+      setCurrentWordIndex(0)
     }
   }, [text])
 
@@ -52,10 +64,22 @@ const FocusMode = () => {
     }
   }, [])
 
+  useEffect(() => {
+    // Auto-scroll to current line
+    if (focusSettings.autoScroll && currentLineRef.current && isFocusMode) {
+      currentLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+    }
+  }, [currentLineIndex, focusSettings.autoScroll, isFocusMode])
+
   const startFocusMode = () => {
     if (!text.trim()) return
     setIsFocusMode(true)
     setCurrentLineIndex(0)
+    setCurrentWordIndex(0)
+    setStartTime(Date.now())
   }
 
   const exitFocusMode = () => {
@@ -65,11 +89,62 @@ const FocusMode = () => {
       clearInterval(intervalRef.current)
     }
     ttsService.stop()
+    
+    // Save reading progress
+    if (startTime) {
+      const duration = Date.now() - startTime
+      const progress = {
+        text: text.substring(0, 100),
+        completed: currentLineIndex >= lines.length - 1,
+        duration,
+        progress: Math.round((currentLineIndex / lines.length) * 100),
+        sessionType: 'focus-mode'
+      }
+      saveReadingProgress(`focus-${Date.now()}`, progress)
+    }
   }
 
   const startReading = () => {
+    setIsReading(true)
+    
+    if (focusSettings.wordByWord) {
+      startWordByWordReading()
+    } else {
+      startLineByLineReading()
+    }
+  }
+
+  const startWordByWordReading = () => {
+    const wordsPerMinute = readingSpeed
+    const millisecondsPerWord = (60 / wordsPerMinute) * 1000
+
+    intervalRef.current = setInterval(() => {
+      setCurrentWordIndex(prev => {
+        if (prev < words.length - 1) {
+          return prev + 1
+        } else {
+          setIsReading(false)
+          clearInterval(intervalRef.current)
+          return prev
+        }
+      })
+    }, millisecondsPerWord)
+
+    // Start text-to-speech for current line
+    if (lines[currentLineIndex]) {
+      ttsService.speak(lines[currentLineIndex], {
+        rate: readingSpeed / 200,
+        onEnd: () => {
+          if (currentLineIndex < lines.length - 1) {
+            setCurrentLineIndex(prev => prev + 1)
+          }
+        }
+      })
+    }
+  }
+
+  const startLineByLineReading = () => {
     if (focusSettings.autoAdvance) {
-      setIsReading(true)
       const wordsInCurrentLine = lines[currentLineIndex]?.split(' ').length || 0
       const timePerLine = (wordsInCurrentLine / readingSpeed) * 60 * 1000 // milliseconds
 
@@ -128,7 +203,7 @@ const FocusMode = () => {
       case 'large': return 'text-2xl'
       case 'xl': return 'text-3xl'
       case 'xxl': return 'text-4xl'
-      default: return 'text-xl'
+      default: return 'text-2xl'
     }
   }
 
@@ -148,6 +223,7 @@ const FocusMode = () => {
       case 'sepia': return 'bg-yellow-50 text-gray-900'
       case 'high-contrast': return 'bg-black text-white'
       case 'blue': return 'bg-blue-900 text-blue-50'
+      case 'green': return 'bg-green-900 text-green-50'
       default: return 'bg-gray-900 text-white'
     }
   }
@@ -158,6 +234,7 @@ const FocusMode = () => {
       case 'green': return 'bg-green-500/30 border-green-500'
       case 'yellow': return 'bg-yellow-500/30 border-yellow-500'
       case 'purple': return 'bg-purple-500/30 border-purple-500'
+      case 'red': return 'bg-red-500/30 border-red-500'
       default: return 'bg-blue-500/30 border-blue-500'
     }
   }
@@ -311,6 +388,7 @@ const FocusMode = () => {
                           <option value="sepia">Sepia</option>
                           <option value="high-contrast">High Contrast</option>
                           <option value="blue">Blue Night</option>
+                          <option value="green">Green Night</option>
                         </select>
                       </div>
                       
@@ -327,13 +405,14 @@ const FocusMode = () => {
                           <option value="green">Green</option>
                           <option value="yellow">Yellow</option>
                           <option value="purple">Purple</option>
+                          <option value="red">Red</option>
                         </select>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center space-x-6">
+                <div className="mt-6 grid grid-cols-2 gap-4">
                   <label className="flex items-center">
                     <input
                       type="checkbox"
@@ -352,6 +431,26 @@ const FocusMode = () => {
                       className="mr-2"
                     />
                     <span className="text-[var(--text-primary)] dyslexia-text">Auto Advance</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={focusSettings.autoScroll}
+                      onChange={(e) => setFocusSettings(prev => ({ ...prev, autoScroll: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    <span className="text-[var(--text-primary)] dyslexia-text">Auto Scroll</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={focusSettings.wordByWord}
+                      onChange={(e) => setFocusSettings(prev => ({ ...prev, wordByWord: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    <span className="text-[var(--text-primary)] dyslexia-text">Word by Word</span>
                   </label>
                 </div>
 
@@ -416,29 +515,49 @@ const FocusMode = () => {
       </div>
 
       {/* Main Reading Area */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="max-w-4xl w-full">
-          {lines.map((line, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0.3 }}
-              animate={{ 
-                opacity: index === currentLineIndex ? 1 : 0.3,
-                scale: index === currentLineIndex ? 1 : 0.95
-              }}
-              className={`p-6 mb-4 rounded-lg dyslexia-text transition-all duration-300 ${
-                index === currentLineIndex 
-                  ? `${getHighlightClass(focusSettings.highlightColor)} border-2 reading-line`
-                  : 'border-2 border-transparent'
-              } ${getFontSizeClass(focusSettings.fontSize)} ${getLineHeightClass(focusSettings.lineHeight)}`}
-              style={{
-                letterSpacing: '0.05em',
-                wordSpacing: '0.1em'
-              }}
-            >
-              {line.trim()}.
-            </motion.div>
-          ))}
+          {focusSettings.wordByWord ? (
+            // Word-by-word display
+            <div className="text-center">
+              <motion.div
+                key={currentWordIndex}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`p-8 rounded-lg dyslexia-text ${getFontSizeClass(focusSettings.fontSize)} ${getLineHeightClass(focusSettings.lineHeight)} ${getHighlightClass(focusSettings.highlightColor)} border-2`}
+                style={{
+                  letterSpacing: '0.1em',
+                  wordSpacing: '0.2em'
+                }}
+              >
+                {words[currentWordIndex] || ''}
+              </motion.div>
+            </div>
+          ) : (
+            // Line-by-line display
+            lines.map((line, index) => (
+              <motion.div
+                key={index}
+                ref={index === currentLineIndex ? currentLineRef : null}
+                initial={{ opacity: 0.3 }}
+                animate={{ 
+                  opacity: index === currentLineIndex ? 1 : 0.3,
+                  scale: index === currentLineIndex ? 1 : 0.95
+                }}
+                className={`p-6 mb-4 rounded-lg dyslexia-text transition-all duration-300 ${
+                  index === currentLineIndex 
+                    ? `${getHighlightClass(focusSettings.highlightColor)} border-2 reading-line`
+                    : 'border-2 border-transparent'
+                } ${getFontSizeClass(focusSettings.fontSize)} ${getLineHeightClass(focusSettings.lineHeight)}`}
+                style={{
+                  letterSpacing: '0.05em',
+                  wordSpacing: '0.1em'
+                }}
+              >
+                {line.trim()}.
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 

@@ -1,9 +1,8 @@
 // client/src/pages/TextToSpeech.jsx
 import React, { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders } from 'lucide-react'
-import { ttsService } from '../utils/textToSpeech'
-import { useUser } from '../context/UserContext'
+import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { ttsService } from '../utils/textToSpeech.js'
+import { useUser } from '../context/UserContext.jsx'
 
 const TextToSpeech = () => {
   const { saveReadingProgress } = useUser()
@@ -16,57 +15,98 @@ const TextToSpeech = () => {
   const [pitch, setPitch] = useState(1.0)
   const [volume, setVolume] = useState(1.0)
   const [showSettings, setShowSettings] = useState(false)
-  const [currentPosition, setCurrentPosition] = useState(0)
-  const [highlightedText, setHighlightedText] = useState('')
+  const [currentProgress, setCurrentProgress] = useState({
+    currentWord: '',
+    currentIndex: 0,
+    totalWords: 0,
+    progress: 0
+  })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
   const fileInputRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = ttsService.getVoices()
       setVoices(availableVoices)
       if (availableVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(availableVoices[0].name)
+        // Prefer English voices
+        const englishVoice = availableVoices.find(voice => 
+          voice.lang.includes('en') && voice.name.includes('Google')
+        ) || availableVoices.find(voice => voice.lang.includes('en'))
+        setSelectedVoice(englishVoice?.name || availableVoices[0].name)
       }
     }
 
     loadVoices()
-    const interval = setInterval(loadVoices, 100)
-    setTimeout(() => clearInterval(interval), 1000)
-  }, [])
+    
+    // Retry loading voices multiple times as they load asynchronously
+    const intervals = [100, 500, 1000, 2000].map(delay => 
+      setTimeout(loadVoices, delay)
+    )
+    
+    return () => intervals.forEach(clearTimeout)
+  }, [selectedVoice])
 
-  const handleSpeak = () => {
-    if (!text.trim()) return
-
-    const options = {
-      rate,
-      pitch,
-      volume,
-      voice: selectedVoice,
-      onStart: () => {
-        setIsPlaying(true)
-        setIsPaused(false)
-      },
-      onEnd: () => {
-        setIsPlaying(false)
-        setIsPaused(false)
-        setCurrentPosition(0)
-        // Save reading progress
-        saveReadingProgress(`tts-${Date.now()}`, {
-          text: text.substring(0, 100),
-          completed: true,
-          duration: Date.now()
-        })
-      },
-      onPause: () => setIsPaused(true),
-      onResume: () => setIsPaused(false),
-      onError: (error) => {
-        console.error('TTS Error:', error)
-        setIsPlaying(false)
-        setIsPaused(false)
-      }
+  const handleSpeak = async () => {
+    if (!text.trim()) {
+      setError('Please enter some text to speak')
+      return
     }
 
-    ttsService.speak(text, options)
+    setError('')
+    setLoading(true)
+    
+    try {
+      const startTime = Date.now()
+      
+      await ttsService.speak(text, {
+        rate,
+        pitch,
+        volume,
+        voice: selectedVoice,
+        onStart: () => {
+          setIsPlaying(true)
+          setIsPaused(false)
+          setLoading(false)
+          setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: text.split(' ').length, progress: 0 })
+        },
+        onProgress: (progress) => {
+          setCurrentProgress(progress)
+        },
+        onEnd: () => {
+          setIsPlaying(false)
+          setIsPaused(false)
+          setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
+          setSuccess('Text read successfully!')
+          setTimeout(() => setSuccess(''), 3000)
+          
+          // Save reading progress
+          const duration = Date.now() - startTime
+          saveReadingProgress(`tts-${Date.now()}`, {
+            text: text.substring(0, 100),
+            completed: true,
+            duration,
+            sessionType: 'text-to-speech'
+          })
+        },
+        onPause: () => setIsPaused(true),
+        onResume: () => setIsPaused(false),
+        onError: (error) => {
+          setError(`Speech error: ${error}`)
+          setIsPlaying(false)
+          setIsPaused(false)
+          setLoading(false)
+          setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
+        }
+      })
+    } catch (error) {
+      setError(`Failed to start speech: ${error.message}`)
+      setIsPlaying(false)
+      setLoading(false)
+    }
   }
 
   const handlePause = () => {
@@ -81,31 +121,74 @@ const TextToSpeech = () => {
     ttsService.stop()
     setIsPlaying(false)
     setIsPaused(false)
-    setCurrentPosition(0)
+    setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
   }
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0]
-    if (file && file.type === 'text/plain') {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setText(e.target.result)
+    if (file) {
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const content = e.target.result
+          if (content.length > 10000) {
+            setError('File is too large. Please use files under 10,000 characters.')
+            return
+          }
+          setText(content)
+          setError('')
+          setSuccess('File uploaded successfully!')
+          setTimeout(() => setSuccess(''), 3000)
+        }
+        reader.onerror = () => {
+          setError('Error reading file. Please try again.')
+        }
+        reader.readAsText(file)
+      } else {
+        setError('Please upload a valid text file (.txt)')
       }
-      reader.readAsText(file)
     }
   }
 
   const handleCopyText = async () => {
+    if (!text) {
+      setError('No text to copy')
+      return
+    }
+    
     try {
       await navigator.clipboard.writeText(text)
+      setSuccess('Text copied to clipboard!')
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      console.error('Failed to copy text:', err)
+      setError('Failed to copy text. Please try selecting and copying manually.')
     }
   }
 
   const handleClear = () => {
     setText('')
     handleStop()
+    setError('')
+    setSuccess('')
+    setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
+  }
+
+  const handleTestVoice = async () => {
+    if (!selectedVoice) return
+    
+    setLoading(true)
+    try {
+      await ttsService.speak('This is a test of the selected voice.', {
+        rate,
+        pitch,
+        volume,
+        voice: selectedVoice
+      })
+    } catch (error) {
+      setError('Voice test failed. Please try a different voice.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const sampleTexts = [
@@ -123,15 +206,23 @@ const TextToSpeech = () => {
     }
   ]
 
+  const highlightCurrentWord = (text, currentIndex) => {
+    if (currentIndex === 0 || !isPlaying) return text
+    
+    const words = text.split(' ')
+    return words.map((word, index) => {
+      if (index === currentIndex - 1) {
+        return `<span class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">${word}</span>`
+      }
+      return word
+    }).join(' ')
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl mb-4">
             <Volume2 className="h-8 w-8 text-white" />
           </div>
@@ -141,17 +232,28 @@ const TextToSpeech = () => {
           <p className="text-[var(--text-secondary)] dyslexia-text">
             Convert any text into natural-sounding speech with customizable voice settings
           </p>
-        </motion.div>
+        </div>
+
+        {/* Status Messages */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+            <p className="text-red-700 dark:text-red-300 text-sm dyslexia-text">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center space-x-3">
+            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <p className="text-green-700 dark:text-green-300 text-sm dyslexia-text">{success}</p>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Text Input */}
           <div className="lg:col-span-2 space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]"
-            >
+            <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
                   Enter Text
@@ -166,14 +268,16 @@ const TextToSpeech = () => {
                   </button>
                   <button
                     onClick={handleCopyText}
-                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+                    disabled={!text}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Copy text"
                   >
                     <Copy className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleClear}
-                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+                    disabled={!text}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Clear text"
                   >
                     <RotateCcw className="h-4 w-4" />
@@ -181,16 +285,31 @@ const TextToSpeech = () => {
                 </div>
               </div>
               
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Paste or type your text here, or upload a text file..."
-                className="w-full h-64 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                style={{
-                  lineHeight: '1.8',
-                  letterSpacing: '0.05em'
-                }}
-              />
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Paste or type your text here, or upload a text file..."
+                  className="w-full h-64 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{
+                    lineHeight: '1.8',
+                    letterSpacing: '0.05em'
+                  }}
+                  maxLength={5000}
+                />
+                {isPlaying && currentProgress.currentWord && (
+                  <div className="absolute inset-0 pointer-events-none p-4 text-transparent dyslexia-text"
+                    style={{
+                      lineHeight: '1.8',
+                      letterSpacing: '0.05em'
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: highlightCurrentWord(text, currentProgress.currentIndex)
+                    }}
+                  />
+                )}
+              </div>
               
               <input
                 ref={fileInputRef}
@@ -202,21 +321,43 @@ const TextToSpeech = () => {
               
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  {text.length} characters
+                  {text.length}/5000 characters
                 </span>
                 <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Estimated reading time: {Math.ceil(text.split(' ').length / 200)} min
+                  Estimated time: {Math.ceil(text.split(' ').length / (rate * 150))} min
                 </div>
               </div>
-            </motion.div>
+
+              {/* Progress Bar */}
+              {isPlaying && currentProgress.totalWords > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-[var(--text-primary)] dyslexia-text">
+                      Reading Progress
+                    </span>
+                    <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
+                      {currentProgress.currentIndex}/{currentProgress.totalWords} words
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${currentProgress.progress}%` }}
+                    />
+                  </div>
+                  {currentProgress.currentWord && (
+                    <div className="mt-2 text-center">
+                      <span className="text-lg font-semibold text-primary-600 bg-primary-100 dark:bg-primary-800 px-3 py-1 rounded-full">
+                        {currentProgress.currentWord}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Sample Texts */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]"
-            >
+            <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-4">
                 Try Sample Texts
               </h3>
@@ -225,7 +366,8 @@ const TextToSpeech = () => {
                   <button
                     key={index}
                     onClick={() => setText(sample.content)}
-                    className="w-full text-left p-3 bg-[var(--bg-secondary)] rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                    disabled={isPlaying}
+                    className="w-full text-left p-3 bg-[var(--bg-secondary)] rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="font-medium text-[var(--text-primary)] dyslexia-text mb-1">
                       {sample.title}
@@ -236,68 +378,52 @@ const TextToSpeech = () => {
                   </button>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </div>
 
           {/* Controls */}
           <div className="space-y-6">
             {/* Playback Controls */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]"
-            >
+            <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-4">
                 Playback Controls
               </h3>
               
               <div className="flex items-center justify-center space-x-4 mb-6">
-                <motion.button
+                <button
                   onClick={handleSpeak}
-                  disabled={!text.trim() || (isPlaying && !isPaused)}
+                  disabled={!text.trim() || (isPlaying && !isPaused) || loading}
                   className="flex items-center justify-center w-12 h-12 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
-                  <Play className="h-6 w-6" />
-                </motion.button>
+                  {loading ? <Loader className="h-6 w-6 animate-spin" /> : <Play className="h-6 w-6" />}
+                </button>
                 
-                <motion.button
+                <button
                   onClick={handlePause}
                   disabled={!isPlaying}
                   className="flex items-center justify-center w-12 h-12 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-full hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   <Pause className="h-6 w-6" />
-                </motion.button>
+                </button>
                 
-                <motion.button
+                <button
                   onClick={handleStop}
                   disabled={!isPlaying && !isPaused}
                   className="flex items-center justify-center w-12 h-12 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-full hover:bg-red-100 dark:hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   <Square className="h-6 w-6" />
-                </motion.button>
+                </button>
               </div>
 
               <div className="text-center mb-4">
                 <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  {isPlaying ? (isPaused ? 'Paused' : 'Playing') : 'Stopped'}
+                  {loading ? 'Loading...' : isPlaying ? (isPaused ? 'Paused' : 'Playing') : 'Stopped'}
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Voice Settings */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]"
-            >
+            <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
                   Voice Settings
@@ -314,7 +440,7 @@ const TextToSpeech = () => {
                 {/* Voice Selection */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
-                    Voice
+                    Voice ({voices.length} available)
                   </label>
                   <select
                     value={selectedVoice}
@@ -327,14 +453,19 @@ const TextToSpeech = () => {
                       </option>
                     ))}
                   </select>
+                  {selectedVoice && (
+                    <button
+                      onClick={handleTestVoice}
+                      disabled={loading || isPlaying}
+                      className="mt-2 w-full px-3 py-1 text-xs bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-700 transition-colors disabled:opacity-50"
+                    >
+                      Test Voice
+                    </button>
+                  )}
                 </div>
 
                 {showSettings && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-4"
-                  >
+                  <div className="space-y-4 border-t border-[var(--border-color)] pt-4">
                     {/* Speed */}
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
@@ -347,8 +478,12 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={rate}
                         onChange={(e) => setRate(parseFloat(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
+                      <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
+                        <span>Slow</span>
+                        <span>Fast</span>
+                      </div>
                     </div>
 
                     {/* Pitch */}
@@ -363,8 +498,12 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={pitch}
                         onChange={(e) => setPitch(parseFloat(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
+                      <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
+                        <span>Low</span>
+                        <span>High</span>
+                      </div>
                     </div>
 
                     {/* Volume */}
@@ -379,13 +518,17 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={volume}
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
+                      <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
+                        <span>Quiet</span>
+                        <span>Loud</span>
+                      </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

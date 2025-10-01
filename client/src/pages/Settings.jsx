@@ -1,46 +1,142 @@
 // client/src/pages/Settings.jsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Settings as SettingsIcon, 
-  User, 
-  Eye, 
-  Volume2, 
-  Languages, 
-  Palette,
-  Save,
-  RotateCcw
-} from 'lucide-react'
+import { Settings as SettingsIcon, User, Eye, Volume2, Languages, Palette, Save, RotateCcw, Type,Sliders, Monitor } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useUser } from '../context/UserContext'
 import { useTheme } from '../context/ThemeContext'
 
 const Settings = () => {
   const { user } = useAuth()
-  const { settings, updateSettings } = useUser()
+  const { settings: userSettings, updateSettings } = useUser()
   const { isDark, toggleTheme, highContrast, toggleHighContrast } = useTheme()
-  const [loading, setSaving] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const [formSettings, setFormSettings] = useState({
-    fontSize: settings.fontSize || 'medium',
-    lineHeight: settings.lineHeight || 'normal',
-    letterSpacing: settings.letterSpacing || 'normal',
-    readingSpeed: settings.readingSpeed || 1.0,
-    voice: settings.voice || 'default',
-    autoPlay: settings.autoPlay || false,
-    highlightReading: settings.highlightReading || true,
-    showProgress: settings.showProgress || true,
-    language: settings.language || 'en'
+    // Typography
+    fontSize: 'medium',
+    lineHeight: 'normal',
+    letterSpacing: 'normal',
+    fontFamily: 'lexend',
+    wordSpacing: 'normal',
+    
+    // Visual
+    backgroundColor: 'default',
+    backgroundOverlay: false,
+    highlightColor: 'blue',
+    
+    // Audio
+    readingSpeed: 1.0,
+    voice: 'default',
+    autoPlay: false,
+    
+    // Reading Experience
+    highlightReading: true,
+    showProgress: true,
+    dyslexiaFriendly: true,
+    
+    // Language
+    language: 'en'
   })
+
+  useEffect(() => {
+    if (userSettings) {
+      setFormSettings(prev => ({ ...prev, ...userSettings }))
+    }
+  }, [userSettings])
 
   const handleInputChange = (key, value) => {
     setFormSettings(prev => ({ ...prev, [key]: value }))
     setSaved(false)
+    
+    // Apply settings immediately for visual feedback
+    applySettingsPreview({ ...formSettings, [key]: value })
+  }
+
+  const applySettingsPreview = (settings) => {
+    const root = document.documentElement
+    
+    // Font family
+    const fontFamilyMap = {
+      lexend: '"Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      opendyslexic: '"OpenDyslexic", "Comic Sans MS", cursive',
+      arial: 'Arial, sans-serif',
+      verdana: 'Verdana, sans-serif',
+      georgia: 'Georgia, serif'
+    }
+    
+    if (settings.fontFamily) {
+      document.body.style.fontFamily = fontFamilyMap[settings.fontFamily] || fontFamilyMap.lexend
+    }
+    
+    // Font size
+    const fontSizeMap = {
+      small: '14px',
+      medium: '16px',
+      large: '18px',
+      xl: '20px',
+      xxl: '24px'
+    }
+    
+    if (settings.fontSize) {
+      root.style.setProperty('--base-font-size', fontSizeMap[settings.fontSize])
+      document.body.style.fontSize = fontSizeMap[settings.fontSize]
+    }
+    
+    // Line height
+    const lineHeightMap = {
+      tight: '1.25',
+      normal: '1.5',
+      relaxed: '1.75',
+      loose: '2'
+    }
+    
+    if (settings.lineHeight) {
+      document.body.style.lineHeight = lineHeightMap[settings.lineHeight]
+    }
+    
+    // Letter spacing
+    const letterSpacingMap = {
+      tight: '-0.025em',
+      normal: '0',
+      wide: '0.025em',
+      wider: '0.05em'
+    }
+    
+    if (settings.letterSpacing) {
+      document.body.style.letterSpacing = letterSpacingMap[settings.letterSpacing]
+    }
+    
+    // Word spacing
+    const wordSpacingMap = {
+      tight: '0',
+      normal: '0.1em',
+      wide: '0.2em',
+      wider: '0.3em'
+    }
+    
+    if (settings.wordSpacing) {
+      document.body.style.wordSpacing = wordSpacingMap[settings.wordSpacing]
+    }
+    
+    // Background overlay
+    if (settings.backgroundOverlay) {
+      root.classList.add('background-overlay')
+    } else {
+      root.classList.remove('background-overlay')
+    }
+    
+    // Dyslexia friendly
+    if (settings.dyslexiaFriendly) {
+      root.classList.add('dyslexia-friendly')
+    } else {
+      root.classList.remove('dyslexia-friendly')
+    }
   }
 
   const handleSave = async () => {
-    setSaving(true)
+    setLoading(true)
     try {
       const result = await updateSettings(formSettings)
       if (result.success) {
@@ -50,7 +146,7 @@ const Settings = () => {
     } catch (error) {
       console.error('Error saving settings:', error)
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
@@ -59,22 +155,41 @@ const Settings = () => {
       fontSize: 'medium',
       lineHeight: 'normal',
       letterSpacing: 'normal',
+      fontFamily: 'lexend',
+      wordSpacing: 'normal',
+      backgroundColor: 'default',
+      backgroundOverlay: false,
+      highlightColor: 'blue',
       readingSpeed: 1.0,
       voice: 'default',
       autoPlay: false,
       highlightReading: true,
       showProgress: true,
+      dyslexiaFriendly: true,
       language: 'en'
     }
     setFormSettings(defaultSettings)
+    applySettingsPreview(defaultSettings)
     setSaved(false)
   }
 
   const settingsSections = [
     {
       title: 'Typography',
-      icon: Eye,
+      icon: Type,
       settings: [
+        {
+          key: 'fontFamily',
+          label: 'Font Family',
+          type: 'select',
+          options: [
+            { value: 'lexend', label: 'Lexend (Recommended)' },
+            { value: 'opendyslexic', label: 'OpenDyslexic' },
+            { value: 'arial', label: 'Arial' },
+            { value: 'verdana', label: 'Verdana' },
+            { value: 'georgia', label: 'Georgia' }
+          ]
+        },
         {
           key: 'fontSize',
           label: 'Font Size',
@@ -108,6 +223,52 @@ const Settings = () => {
             { value: 'wide', label: 'Wide' },
             { value: 'wider', label: 'Wider' }
           ]
+        },
+        {
+          key: 'wordSpacing',
+          label: 'Word Spacing',
+          type: 'select',
+          options: [
+            { value: 'tight', label: 'Tight' },
+            { value: 'normal', label: 'Normal' },
+            { value: 'wide', label: 'Wide' },
+            { value: 'wider', label: 'Wider' }
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Visual',
+      icon: Eye,
+      settings: [
+        {
+          key: 'backgroundColor',
+          label: 'Background Theme',
+          type: 'select',
+          options: [
+            { value: 'default', label: 'Default' },
+            { value: 'sepia', label: 'Sepia' },
+            { value: 'dark', label: 'Dark' },
+            { value: 'high-contrast', label: 'High Contrast' }
+          ]
+        },
+        {
+          key: 'highlightColor',
+          label: 'Highlight Color',
+          type: 'select',
+          options: [
+            { value: 'blue', label: 'Blue' },
+            { value: 'green', label: 'Green' },
+            { value: 'yellow', label: 'Yellow' },
+            { value: 'purple', label: 'Purple' },
+            { value: 'red', label: 'Red' }
+          ]
+        },
+        {
+          key: 'backgroundOverlay',
+          label: 'Background Overlay',
+          type: 'checkbox',
+          description: 'Adds a subtle overlay to reduce eye strain'
         }
       ]
     },
@@ -137,7 +298,8 @@ const Settings = () => {
         {
           key: 'autoPlay',
           label: 'Auto-play Text',
-          type: 'checkbox'
+          type: 'checkbox',
+          description: 'Automatically start reading when text is loaded'
         }
       ]
     },
@@ -148,12 +310,20 @@ const Settings = () => {
         {
           key: 'highlightReading',
           label: 'Highlight Current Line',
-          type: 'checkbox'
+          type: 'checkbox',
+          description: 'Highlights the line being read'
         },
         {
           key: 'showProgress',
           label: 'Show Reading Progress',
-          type: 'checkbox'
+          type: 'checkbox',
+          description: 'Displays progress bars and reading statistics'
+        },
+        {
+          key: 'dyslexiaFriendly',
+          label: 'Dyslexia-Friendly Mode',
+          type: 'checkbox',
+          description: 'Optimizes text display for dyslexic readers'
         }
       ]
     },
@@ -170,7 +340,12 @@ const Settings = () => {
             { value: 'es', label: 'Spanish' },
             { value: 'fr', label: 'French' },
             { value: 'de', label: 'German' },
-            { value: 'it', label: 'Italian' }
+            { value: 'it', label: 'Italian' },
+            { value: 'pt', label: 'Portuguese' },
+            { value: 'ru', label: 'Russian' },
+            { value: 'zh', label: 'Chinese' },
+            { value: 'ja', label: 'Japanese' },
+            { value: 'ko', label: 'Korean' }
           ]
         }
       ]

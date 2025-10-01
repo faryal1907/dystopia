@@ -4,32 +4,52 @@ import User from '../models/User.model.js'
 
 export const saveProgress = async (req, res) => {
   try {
-    const { userId, textId, progress } = req.body
+    const { userId, textId, progress, text, completed, duration, sessionType } = req.body
     
     const session = new ReadingSession({
       userId,
-      textId,
-      ...progress,
+      textId: textId || `session-${Date.now()}`,
+      title: text ? text.substring(0, 50) + '...' : 'Reading Session',
+      content: text || '',
+      sessionType: sessionType || 'regular',
+      progress: {
+        percentage: progress || 0,
+        completed: completed || false
+      },
+      duration: duration || 0,
+      wordsRead: text ? text.split(' ').length : 0,
       updatedAt: Date.now()
     })
     
     await session.save()
     
     // Update user stats
+    const updateData = {
+      $set: { 
+        'stats.lastReadingDate': new Date(),
+        updatedAt: Date.now()
+      }
+    }
+    
+    if (completed) {
+      updateData.$inc = { 
+        'stats.totalTextsRead': 1,
+        'stats.totalReadingTime': duration || 0
+      }
+    } else {
+      updateData.$inc = { 
+        'stats.totalReadingTime': duration || 0
+      }
+    }
+    
     await User.findOneAndUpdate(
       { supabaseId: userId },
-      { 
-        $inc: { 
-          'stats.totalTextsRead': progress.completed ? 1 : 0,
-          'stats.totalReadingTime': progress.duration || 0
-        },
-        $set: { 
-          'stats.lastReadingDate': new Date(),
-          updatedAt: Date.now()
-        }
-      },
+      updateData,
       { upsert: true }
     )
+    
+    // Update reading streak
+    await updateUserStreak(userId)
     
     res.json({ success: true, session })
   } catch (error) {
@@ -69,26 +89,44 @@ export const getReadingStats = async (req, res) => {
   try {
     const { userId } = req.params
     
-    const user = await User.findOne({ supabaseId: userId })
+    let user = await User.findOne({ supabaseId: userId })
     
     if (!user) {
-      return res.json({
-        totalTextsRead: 0,
-        totalReadingTime: 0,
-        readingStreak: 0,
-        averageSessionTime: 0
+      // Create user if doesn't exist
+      user = new User({
+        supabaseId: userId,
+        email: 'unknown@example.com',
+        stats: {
+          totalTextsRead: 0,
+          totalReadingTime: 0,
+          readingStreak: 0
+        }
       })
+      await user.save()
     }
     
-    // Calculate additional stats
+    // Calculate additional stats from sessions
     const sessions = await ReadingSession.find({ userId })
-    const averageSessionTime = sessions.length > 0 
-      ? sessions.reduce((acc, session) => acc + (session.duration || 0), 0) / sessions.length
+    const totalSessions = sessions.length
+    const completedSessions = sessions.filter(s => s.progress.completed).length
+    const averageSessionTime = totalSessions > 0 
+      ? sessions.reduce((acc, session) => acc + (session.duration || 0), 0) / totalSessions
       : 0
     
+    // Calculate words per minute
+    const totalWordsRead = sessions.reduce((acc, session) => acc + (session.wordsRead || 0), 0)
+    const totalTimeInMinutes = (user.stats.totalReadingTime || 0) / (1000 * 60)
+    const wordsPerMinute = totalTimeInMinutes > 0 ? Math.round(totalWordsRead / totalTimeInMinutes) : 0
+    
     res.json({
-      ...user.stats,
-      averageSessionTime: Math.round(averageSessionTime)
+      totalTextsRead: user.stats.totalTextsRead || 0,
+      totalReadingTime: user.stats.totalReadingTime || 0,
+      readingStreak: user.stats.readingStreak || 0,
+      averageSessionTime: Math.round(averageSessionTime),
+      totalSessions,
+      completedSessions,
+      wordsPerMinute,
+      lastReadingDate: user.stats.lastReadingDate
     })
   } catch (error) {
     console.error('Error fetching reading stats:', error)
@@ -99,28 +137,51 @@ export const getReadingStats = async (req, res) => {
 export const updateReadingStreak = async (req, res) => {
   try {
     const { userId } = req.params
+    const newStreak = await updateUserStreak(userId)
+    res.json({ streak: newStreak })
+  } catch (error) {
+    console.error('Error updating reading streak:', error)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+// Helper function to update user streak
+const updateUserStreak = async (userId) => {
+  try {
+    let user = await User.findOne({ supabaseId: userId })
     
-    const user = await User.findOne({ supabaseId: userId })
     if (!user) {
-      return res.status(404).json({ message: 'User not found' })
+      user = new User({
+        supabaseId: userId,
+        email: 'unknown@example.com',
+        stats: { readingStreak: 1, lastReadingDate: new Date() }
+      })
+      await user.save()
+      return 1
     }
     
     const today = new Date()
-    const lastReading = user.stats.lastReadingDate
+    today.setHours(0, 0, 0, 0)
     
+    const lastReading = user.stats.lastReadingDate
     let newStreak = user.stats.readingStreak || 0
     
     if (lastReading) {
-      const daysDiff = Math.floor((today - lastReading) / (1000 * 60 * 60 * 24))
+      const lastReadingDate = new Date(lastReading)
+      lastReadingDate.setHours(0, 0, 0, 0)
       
-      if (daysDiff === 1) {
+      const daysDiff = Math.floor((today - lastReadingDate) / (1000 * 60 * 60 * 24))
+      
+      if (daysDiff === 0) {
+        // Same day, no change to streak
+        return newStreak
+      } else if (daysDiff === 1) {
         // Consecutive day
         newStreak += 1
       } else if (daysDiff > 1) {
         // Streak broken
         newStreak = 1
       }
-      // Same day, no change
     } else {
       // First reading
       newStreak = 1
@@ -131,15 +192,41 @@ export const updateReadingStreak = async (req, res) => {
       { 
         $set: {
           'stats.readingStreak': newStreak,
-          'stats.lastReadingDate': today,
+          'stats.lastReadingDate': new Date(),
           updatedAt: Date.now()
         }
       }
     )
     
-    res.json({ streak: newStreak })
+    return newStreak
   } catch (error) {
-    console.error('Error updating reading streak:', error)
+    console.error('Error updating user streak:', error)
+    return 0
+  }
+}
+
+export const getRecentActivity = async (req, res) => {
+  try {
+    const { userId } = req.params
+    const { limit = 10 } = req.query
+    
+    const sessions = await ReadingSession.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .select('title content sessionType progress duration createdAt')
+    
+    const activity = sessions.map(session => ({
+      id: session._id,
+      text: session.title || 'Reading Session',
+      progress: session.progress.percentage || 0,
+      time: session.createdAt,
+      type: session.sessionType || 'regular',
+      duration: session.duration || 0
+    }))
+    
+    res.json(activity)
+  } catch (error) {
+    console.error('Error fetching recent activity:', error)
     res.status(500).json({ message: 'Server error' })
   }
 }
