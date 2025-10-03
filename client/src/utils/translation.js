@@ -1,5 +1,8 @@
 // client/src/utils/translation.js
-import { api } from './api'
+
+// FIXED: Updated Gemini API endpoint and error handling
+const GEMINI_API_KEY = 'AIzaSyDvBQzNc3IUaEnHJ9Ezq0uIYysc7ERbG5M'
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
 
 class TranslationService {
   constructor() {
@@ -97,148 +100,142 @@ class TranslationService {
       { code: 'ny', name: 'Chichewa' },
       { code: 'mg', name: 'Malagasy' },
       { code: 'eo', name: 'Esperanto' },
-      { code: 'la', name: 'Latin' }
+      { code: 'la', name: 'Latin' },
+      { code: 'id', name: 'Indonesian' },
+      { code: 'ms', name: 'Malay' },
+      { code: 'tl', name: 'Tagalog' }
     ]
-    
-    // Mock translation database for demo purposes
-    this.mockTranslations = {
-      'en-es': {
-        'Hello, how are you today?': 'Hola, ¿cómo estás hoy?',
-        'Technology is changing the world rapidly.': 'La tecnología está cambiando el mundo rápidamente.',
-        'Reading is a fundamental skill for learning.': 'La lectura es una habilidad fundamental para el aprendizaje.',
-        'Good morning': 'Buenos días',
-        'Good afternoon': 'Buenas tardes',
-        'Good evening': 'Buenas noches',
-        'Thank you': 'Gracias',
-        'Please': 'Por favor',
-        'Excuse me': 'Disculpe',
-        'I love reading books': 'Me encanta leer libros'
-      },
-      'en-fr': {
-        'Hello, how are you today?': 'Bonjour, comment allez-vous aujourd\'hui?',
-        'Technology is changing the world rapidly.': 'La technologie change rapidement le monde.',
-        'Reading is a fundamental skill for learning.': 'La lecture est une compétence fondamentale pour l\'apprentissage.',
-        'Good morning': 'Bonjour',
-        'Good afternoon': 'Bon après-midi',
-        'Good evening': 'Bonsoir',
-        'Thank you': 'Merci',
-        'Please': 'S\'il vous plaît',
-        'Excuse me': 'Excusez-moi',
-        'I love reading books': 'J\'adore lire des livres'
-      },
-      'en-de': {
-        'Hello, how are you today?': 'Hallo, wie geht es dir heute?',
-        'Technology is changing the world rapidly.': 'Die Technologie verändert die Welt schnell.',
-        'Reading is a fundamental skill for learning.': 'Lesen ist eine grundlegende Fähigkeit zum Lernen.',
-        'Good morning': 'Guten Morgen',
-        'Good afternoon': 'Guten Tag',
-        'Good evening': 'Guten Abend',
-        'Thank you': 'Danke',
-        'Please': 'Bitte',
-        'Excuse me': 'Entschuldigung',
-        'I love reading books': 'Ich liebe es, Bücher zu lesen'
-      },
-      'en-it': {
-        'Hello, how are you today?': 'Ciao, come stai oggi?',
-        'Technology is changing the world rapidly.': 'La tecnologia sta cambiando rapidamente il mondo.',
-        'Reading is a fundamental skill for learning.': 'La lettura è un\'abilità fondamentale per l\'apprendimento.',
-        'Good morning': 'Buongiorno',
-        'Good afternoon': 'Buon pomeriggio',
-        'Good evening': 'Buonasera',
-        'Thank you': 'Grazie',
-        'Please': 'Per favore',
-        'Excuse me': 'Scusi',
-        'I love reading books': 'Amo leggere libri'
-      },
-      'en-pt': {
-        'Hello, how are you today?': 'Olá, como você está hoje?',
-        'Technology is changing the world rapidly.': 'A tecnologia está mudando o mundo rapidamente.',
-        'Reading is a fundamental skill for learning.': 'A leitura é uma habilidade fundamental para o aprendizado.',
-        'Good morning': 'Bom dia',
-        'Good afternoon': 'Boa tarde',
-        'Good evening': 'Boa noite',
-        'Thank you': 'Obrigado',
-        'Please': 'Por favor',
-        'Excuse me': 'Com licença',
-        'I love reading books': 'Eu amo ler livros'
-      }
-    }
+
+    // Translation cache to reduce API calls
+    this.cache = new Map()
+  }
+
+  getCacheKey(text, targetLanguage, sourceLanguage) {
+    return `${sourceLanguage}-${targetLanguage}-${text.substring(0, 50)}`
   }
 
   async translateText(text, targetLanguage, sourceLanguage = 'auto') {
     try {
-      // Try API first
-      const response = await api.post('/translation/translate', {
-        text,
-        targetLanguage,
-        sourceLanguage
+      // Check cache first
+      const cacheKey = this.getCacheKey(text, targetLanguage, sourceLanguage)
+      if (this.cache.has(cacheKey)) {
+        console.log('Using cached translation')
+        return this.cache.get(cacheKey)
+      }
+
+      const targetLangName = this.getLanguageName(targetLanguage)
+      const sourceLangName = sourceLanguage === 'auto' ? 'the detected language' : this.getLanguageName(sourceLanguage)
+
+      const prompt = `Translate the following text from ${sourceLangName} to ${targetLangName}. Provide ONLY the translated text without any additional commentary, explanations, or formatting. Make the translation natural and easy to read for people with dyslexia.
+
+Text to translate:
+${text}`
+
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            topK: 1,
+            topP: 1,
+            maxOutputTokens: 2048,
+          }
+        })
       })
-      return {
-        success: true,
-        translatedText: response.data.translatedText,
-        detectedLanguage: response.data.detectedLanguage
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Gemini API Error:', errorData)
+        throw new Error(`Gemini API request failed: ${response.status}`)
       }
+
+      const data = await response.json()
+      const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+
+      if (!translatedText) {
+        throw new Error('No translation received from API')
+      }
+
+      const result = {
+        success: true,
+        translatedText,
+        detectedLanguage: sourceLanguage === 'auto' ? 'en' : sourceLanguage
+      }
+
+      // Cache the result
+      this.cache.set(cacheKey, result)
+
+      // Limit cache size
+      if (this.cache.size > 100) {
+        const firstKey = this.cache.keys().next().value
+        this.cache.delete(firstKey)
+      }
+
+      return result
     } catch (error) {
-      console.log('API translation failed, using mock translation:', error.message)
-      
-      // Fallback to mock translation
-      const detectedLang = sourceLanguage === 'auto' ? 'en' : sourceLanguage
-      const translationKey = `${detectedLang}-${targetLanguage}`
-      const mockTranslation = this.mockTranslations[translationKey]?.[text]
-      
-      if (mockTranslation) {
-        return {
-          success: true,
-          translatedText: mockTranslation,
-          detectedLanguage: detectedLang
-        }
-      }
-      
-      // Simple mock translation if no exact match
+      console.error('Translation error:', error)
       return {
-        success: true,
-        translatedText: `[${targetLanguage.toUpperCase()}] ${text}`,
-        detectedLanguage: detectedLang
+        success: false,
+        error: 'Translation failed. Please check your internet connection and try again.',
+        translatedText: text,
+        detectedLanguage: sourceLanguage === 'auto' ? 'en' : sourceLanguage
       }
     }
   }
 
   async detectLanguage(text) {
     try {
-      const response = await api.post('/translation/detect', { text })
+      const prompt = `Detect the language of the following text and respond with ONLY the ISO 639-1 language code (e.g., 'en', 'es', 'fr'). Do not provide any explanation or additional text.
+
+Text:
+${text}`
+
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            topK: 1,
+            topP: 1,
+            maxOutputTokens: 10,
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Gemini API request failed')
+      }
+
+      const data = await response.json()
+      const detectedLang = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase()
+
       return {
         success: true,
-        language: response.data.language,
-        confidence: response.data.confidence
+        language: detectedLang || 'en',
+        confidence: 0.95
       }
     } catch (error) {
-      console.log('API language detection failed, using mock detection:', error.message)
-      
-      // Simple mock language detection
-      const commonWords = {
-        en: ['the', 'and', 'is', 'in', 'to', 'of', 'a', 'that', 'it', 'with'],
-        es: ['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'es', 'se'],
-        fr: ['le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir'],
-        de: ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich'],
-        it: ['il', 'di', 'che', 'e', 'la', 'per', 'un', 'in', 'con', 'del']
-      }
-      
-      const words = text.toLowerCase().split(/\s+/)
-      let bestMatch = 'en'
-      let bestScore = 0
-      
-      for (const [lang, commonWordsArray] of Object.entries(commonWords)) {
-        const score = words.filter(word => commonWordsArray.includes(word)).length
-        if (score > bestScore) {
-          bestScore = score
-          bestMatch = lang
-        }
-      }
-      
+      console.error('Language detection error:', error)
       return {
         success: true,
-        language: bestMatch,
-        confidence: Math.min(0.95, bestScore / words.length + 0.5)
+        language: 'en',
+        confidence: 0.5
       }
     }
   }
@@ -252,27 +249,9 @@ class TranslationService {
     return language ? language.name : code
   }
 
-  // Add more mock translations for common phrases
-  addMockTranslation(sourceText, targetLang, translatedText, sourceLang = 'en') {
-    const key = `${sourceLang}-${targetLang}`
-    if (!this.mockTranslations[key]) {
-      this.mockTranslations[key] = {}
-    }
-    this.mockTranslations[key][sourceText] = translatedText
+  clearCache() {
+    this.cache.clear()
   }
 }
 
 export const translationService = new TranslationService()
-
-// Add some additional mock translations for better demo experience
-translationService.addMockTranslation('Welcome to VOXA', 'es', 'Bienvenido a VOXA')
-translationService.addMockTranslation('Welcome to VOXA', 'fr', 'Bienvenue à VOXA')
-translationService.addMockTranslation('Welcome to VOXA', 'de', 'Willkommen bei VOXA')
-translationService.addMockTranslation('Welcome to VOXA', 'it', 'Benvenuto in VOXA')
-translationService.addMockTranslation('Welcome to VOXA', 'pt', 'Bem-vindo ao VOXA')
-
-translationService.addMockTranslation('This is a test sentence for translation.', 'es', 'Esta es una oración de prueba para traducción.')
-translationService.addMockTranslation('This is a test sentence for translation.', 'fr', 'Ceci est une phrase de test pour la traduction.')
-translationService.addMockTranslation('This is a test sentence for translation.', 'de', 'Dies ist ein Testsatz für die Übersetzung.')
-translationService.addMockTranslation('This is a test sentence for translation.', 'it', 'Questa è una frase di prova per la traduzione.')
-translationService.addMockTranslation('This is a test sentence for translation.', 'pt', 'Esta é uma frase de teste para tradução.')

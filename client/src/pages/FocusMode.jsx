@@ -1,60 +1,23 @@
-// client/src/pages/FocusMode.jsx
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Focus, 
-  X, 
-  Play, 
-  Pause, 
-  SkipForward, 
-  SkipBack, 
-  Settings,
-  Eye,
-  Type,
-  Palette,
-  Volume2
-} from 'lucide-react'
-import { ttsService } from '../utils/textToSpeech'
-import { useUser } from '../context/UserContext'
+import { Focus, Play, Pause, Square, Settings as SettingsIcon, X, ArrowLeft, Sliders } from 'lucide-react'
+import { useUser } from '../context/UserContext.jsx'
+import { useNavigate } from 'react-router-dom'
 
 const FocusMode = () => {
-  const { saveReadingProgress } = useUser()
+  const { settings, saveReadingProgress } = useUser()
+  const navigate = useNavigate()
   const [text, setText] = useState('')
-  const [isFocusMode, setIsFocusMode] = useState(false)
-  const [currentLineIndex, setCurrentLineIndex] = useState(0)
-  const [isReading, setIsReading] = useState(false)
-  const [readingSpeed, setReadingSpeed] = useState(200) // words per minute
-  const [focusSettings, setFocusSettings] = useState({
-    fontSize: 'large',
-    lineHeight: 'relaxed',
-    backgroundColor: 'dark',
-    highlightColor: 'blue',
-    showProgress: true,
-    autoAdvance: true,
-    autoScroll: true,
-    wordByWord: false
-  })
-  const [showSettings, setShowSettings] = useState(false)
-  const [lines, setLines] = useState([])
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [words, setWords] = useState([])
-  const [currentWordIndex, setCurrentWordIndex] = useState(0)
-  const [startTime, setStartTime] = useState(null)
-  
+  const [showSettings, setShowSettings] = useState(false)
+  const [speed, setSpeed] = useState(settings?.focusModeSpeed || 200)
+  const [pauseTime, setPauseTime] = useState(settings?.focusPauseTime || 500)
+  const [wordByWord, setWordByWord] = useState(settings?.focusWordByWord || false)
   const intervalRef = useRef(null)
-  const focusRef = useRef(null)
-  const currentLineRef = useRef(null)
-
-  useEffect(() => {
-    if (text) {
-      // Split text into sentences and words for better focus reading
-      const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim())
-      const allWords = text.split(/\s+/).filter(word => word.trim())
-      setLines(sentences)
-      setWords(allWords)
-      setCurrentLineIndex(0)
-      setCurrentWordIndex(0)
-    }
-  }, [text])
+  const startTimeRef = useRef(null)
 
   useEffect(() => {
     return () => {
@@ -64,531 +27,363 @@ const FocusMode = () => {
     }
   }, [])
 
-  useEffect(() => {
-    // Auto-scroll to current line
-    if (focusSettings.autoScroll && currentLineRef.current && isFocusMode) {
-      currentLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      })
-    }
-  }, [currentLineIndex, focusSettings.autoScroll, isFocusMode])
-
-  const startFocusMode = () => {
+  const handleStart = () => {
     if (!text.trim()) return
-    setIsFocusMode(true)
-    setCurrentLineIndex(0)
-    setCurrentWordIndex(0)
-    setStartTime(Date.now())
-  }
 
-  const exitFocusMode = () => {
-    setIsFocusMode(false)
-    setIsReading(false)
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
-    ttsService.stop()
-    
-    // Save reading progress
-    if (startTime) {
-      const duration = Date.now() - startTime
-      const progress = {
-        text: text.substring(0, 100),
-        completed: currentLineIndex >= lines.length - 1,
-        duration,
-        progress: Math.round((currentLineIndex / lines.length) * 100),
-        sessionType: 'focus-mode'
-      }
-      saveReadingProgress(`focus-${Date.now()}`, progress)
-    }
-  }
-
-  const startReading = () => {
-    setIsReading(true)
-    
-    if (focusSettings.wordByWord) {
-      startWordByWordReading()
-    } else {
-      startLineByLineReading()
-    }
-  }
-
-  const startWordByWordReading = () => {
-    const wordsPerMinute = readingSpeed
-    const millisecondsPerWord = (60 / wordsPerMinute) * 1000
+    const textWords = text.split(' ').filter(w => w.trim())
+    setWords(textWords)
+    setCurrentIndex(0)
+    setIsPlaying(true)
+    setIsPaused(false)
+    startTimeRef.current = Date.now()
 
     intervalRef.current = setInterval(() => {
-      setCurrentWordIndex(prev => {
-        if (prev < words.length - 1) {
-          return prev + 1
-        } else {
-          setIsReading(false)
-          clearInterval(intervalRef.current)
+      setCurrentIndex(prev => {
+        const nextIndex = prev + 1
+        if (nextIndex >= textWords.length) {
+          handleStop()
           return prev
         }
+        return nextIndex
       })
-    }, millisecondsPerWord)
-
-    // Start text-to-speech for current line
-    if (lines[currentLineIndex]) {
-      ttsService.speak(lines[currentLineIndex], {
-        rate: readingSpeed / 200,
-        onEnd: () => {
-          if (currentLineIndex < lines.length - 1) {
-            setCurrentLineIndex(prev => prev + 1)
-          }
-        }
-      })
-    }
+    }, 60000 / speed)
   }
 
-  const startLineByLineReading = () => {
-    if (focusSettings.autoAdvance) {
-      const wordsInCurrentLine = lines[currentLineIndex]?.split(' ').length || 0
-      const timePerLine = (wordsInCurrentLine / readingSpeed) * 60 * 1000 // milliseconds
-
-      intervalRef.current = setInterval(() => {
-        setCurrentLineIndex(prev => {
-          if (prev < lines.length - 1) {
-            return prev + 1
-          } else {
-            setIsReading(false)
-            clearInterval(intervalRef.current)
-            return prev
-          }
-        })
-      }, timePerLine)
-    }
-
-    // Start text-to-speech
-    if (lines[currentLineIndex]) {
-      ttsService.speak(lines[currentLineIndex], {
-        rate: readingSpeed / 200,
-        onEnd: () => {
-          if (!focusSettings.autoAdvance && currentLineIndex < lines.length - 1) {
-            setCurrentLineIndex(prev => prev + 1)
-          }
-        }
-      })
-    }
-  }
-
-  const pauseReading = () => {
-    setIsReading(false)
+  const handlePause = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
+      intervalRef.current = null
     }
-    ttsService.pause()
+    setIsPaused(true)
+    setIsPlaying(false)
   }
 
-  const nextLine = () => {
-    if (currentLineIndex < lines.length - 1) {
-      setCurrentLineIndex(prev => prev + 1)
-      ttsService.stop()
+  const handleResume = () => {
+    setIsPaused(false)
+    setIsPlaying(true)
+
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex(prev => {
+        const nextIndex = prev + 1
+        if (nextIndex >= words.length) {
+          handleStop()
+          return prev
+        }
+        return nextIndex
+      })
+    }, 60000 / speed)
+  }
+
+  const handleStop = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    setIsPlaying(false)
+    setIsPaused(false)
+
+    // Save reading progress
+    if (startTimeRef.current && currentIndex > 0) {
+      const duration = Date.now() - startTimeRef.current
+      saveReadingProgress(`focus-${Date.now()}`, {
+        text: text.substring(0, 100),
+        completed: currentIndex >= words.length - 1,
+        duration,
+        sessionType: 'focus-mode',
+        progress: (currentIndex / words.length) * 100
+      })
+    }
+
+    setCurrentIndex(0)
+  }
+
+  const getDisplayText = () => {
+    if (words.length === 0) return ''
+
+    if (wordByWord) {
+      return words[currentIndex] || ''
+    } else {
+      const wordsPerLine = 5
+      const startIdx = Math.max(0, currentIndex - 2)
+      const endIdx = Math.min(words.length, startIdx + wordsPerLine)
+      return words.slice(startIdx, endIdx).map((word, idx) => {
+        const wordIdx = startIdx + idx
+        if (wordIdx === currentIndex) {
+          return `<span class="current-word">${word}</span>`
+        } else if (wordIdx < currentIndex) {
+          return `<span class="completed-word">${word}</span>`
+        } else {
+          return `<span class="upcoming-word">${word}</span>`
+        }
+      }).join(' ')
     }
   }
 
-  const prevLine = () => {
-    if (currentLineIndex > 0) {
-      setCurrentLineIndex(prev => prev - 1)
-      ttsService.stop()
+  const progress = words.length > 0 ? (currentIndex / words.length) * 100 : 0
+
+  const sampleTexts = [
+    {
+      title: "Focus Exercise",
+      content: "Reading in focus mode helps improve concentration and comprehension. By displaying words one at a time, your brain can process information more effectively without distractions."
+    },
+    {
+      title: "Quick Practice",
+      content: "This is a short practice text for testing focus mode. Try different speeds to find what works best for you."
     }
-  }
+  ]
 
-  const getFontSizeClass = (size) => {
-    switch (size) {
-      case 'small': return 'text-lg'
-      case 'medium': return 'text-xl'
-      case 'large': return 'text-2xl'
-      case 'xl': return 'text-3xl'
-      case 'xxl': return 'text-4xl'
-      default: return 'text-2xl'
-    }
-  }
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+                <Focus className="h-5 w-5" />
+              </div>
+              <h1 className="text-xl font-bold dyslexia-text">Focus Mode</h1>
+            </div>
+          </div>
 
-  const getLineHeightClass = (height) => {
-    switch (height) {
-      case 'tight': return 'leading-tight'
-      case 'normal': return 'leading-normal'
-      case 'relaxed': return 'leading-relaxed'
-      case 'loose': return 'leading-loose'
-      default: return 'leading-relaxed'
-    }
-  }
-
-  const getBackgroundClass = (bg) => {
-    switch (bg) {
-      case 'dark': return 'bg-gray-900 text-white'
-      case 'sepia': return 'bg-yellow-50 text-gray-900'
-      case 'high-contrast': return 'bg-black text-white'
-      case 'blue': return 'bg-blue-900 text-blue-50'
-      case 'green': return 'bg-green-900 text-green-50'
-      default: return 'bg-gray-900 text-white'
-    }
-  }
-
-  const getHighlightClass = (color) => {
-    switch (color) {
-      case 'blue': return 'bg-blue-500/30 border-blue-500'
-      case 'green': return 'bg-green-500/30 border-green-500'
-      case 'yellow': return 'bg-yellow-500/30 border-yellow-500'
-      case 'purple': return 'bg-purple-500/30 border-purple-500'
-      case 'red': return 'bg-red-500/30 border-red-500'
-      default: return 'bg-blue-500/30 border-blue-500'
-    }
-  }
-
-  const sampleText = `The benefits of reading are numerous and well-documented. Regular reading improves vocabulary, enhances cognitive function, and reduces stress levels. It also stimulates the brain, improves focus and concentration, and enhances empathy by allowing readers to experience different perspectives. For individuals with dyslexia or reading difficulties, tools like text-to-speech and focus mode can make reading more accessible and enjoyable. Technology has opened new doors for inclusive learning, ensuring that everyone can benefit from the joy and knowledge that reading provides. With proper tools and techniques, reading can become a lifelong passion rather than a challenge.`
-
-  if (!isFocusMode) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <div className="inline-flex p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl mb-4">
-              <Focus className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)] dyslexia-text mb-2">
-              Focus Mode
-            </h1>
-            <p className="text-[var(--text-secondary)] dyslexia-text">
-              Distraction-free reading with line-by-line highlighting and customizable settings
-            </p>
-          </motion.div>
+            <SettingsIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
 
-          {/* Text Input */}
+      {/* Settings Panel */}
+      <AnimatePresence>
+        {showSettings && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] mb-8"
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-gray-800 border-b border-gray-700 px-4 py-6"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
-                Enter Text for Focus Reading
-              </h2>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
-              >
-                <Settings className="h-5 w-5" />
-              </button>
-            </div>
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold dyslexia-text">Focus Mode Settings</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste your text here or try the sample text below..."
-              className="w-full h-48 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
-              style={{
-                lineHeight: '1.8',
-                letterSpacing: '0.05em'
-              }}
-            />
-
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setText(sampleText)}
-                className="px-4 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors dyslexia-text"
-              >
-                Use Sample Text
-              </button>
-              <button
-                onClick={startFocusMode}
-                disabled={!text.trim()}
-                className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dyslexia-text"
-              >
-                <Focus className="h-5 w-5 mr-2" />
-                Enter Focus Mode
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Settings Panel */}
-          <AnimatePresence>
-            {showSettings && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] mb-8"
-              >
-                <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-6">
-                  Focus Mode Settings
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Typography Settings */}
-                  <div>
-                    <h4 className="font-medium text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
-                      <Type className="h-4 w-4 mr-2" />
-                      Typography
-                    </h4>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                          Font Size
-                        </label>
-                        <select
-                          value={focusSettings.fontSize}
-                          onChange={(e) => setFocusSettings(prev => ({ ...prev, fontSize: e.target.value }))}
-                          className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text"
-                        >
-                          <option value="small">Small</option>
-                          <option value="medium">Medium</option>
-                          <option value="large">Large</option>
-                          <option value="xl">Extra Large</option>
-                          <option value="xxl">Double XL</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                          Line Height
-                        </label>
-                        <select
-                          value={focusSettings.lineHeight}
-                          onChange={(e) => setFocusSettings(prev => ({ ...prev, lineHeight: e.target.value }))}
-                          className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text"
-                        >
-                          <option value="tight">Tight</option>
-                          <option value="normal">Normal</option>
-                          <option value="relaxed">Relaxed</option>
-                          <option value="loose">Loose</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Visual Settings */}
-                  <div>
-                    <h4 className="font-medium text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
-                      <Palette className="h-4 w-4 mr-2" />
-                      Visual
-                    </h4>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                          Background Theme
-                        </label>
-                        <select
-                          value={focusSettings.backgroundColor}
-                          onChange={(e) => setFocusSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                          className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text"
-                        >
-                          <option value="dark">Dark</option>
-                          <option value="sepia">Sepia</option>
-                          <option value="high-contrast">High Contrast</option>
-                          <option value="blue">Blue Night</option>
-                          <option value="green">Green Night</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                          Highlight Color
-                        </label>
-                        <select
-                          value={focusSettings.highlightColor}
-                          onChange={(e) => setFocusSettings(prev => ({ ...prev, highlightColor: e.target.value }))}
-                          className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text"
-                        >
-                          <option value="blue">Blue</option>
-                          <option value="green">Green</option>
-                          <option value="yellow">Yellow</option>
-                          <option value="purple">Purple</option>
-                          <option value="red">Red</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={focusSettings.showProgress}
-                      onChange={(e) => setFocusSettings(prev => ({ ...prev, showProgress: e.target.checked }))}
-                      className="mr-2"
-                    />
-                    <span className="text-[var(--text-primary)] dyslexia-text">Show Progress</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={focusSettings.autoAdvance}
-                      onChange={(e) => setFocusSettings(prev => ({ ...prev, autoAdvance: e.target.checked }))}
-                      className="mr-2"
-                    />
-                    <span className="text-[var(--text-primary)] dyslexia-text">Auto Advance</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={focusSettings.autoScroll}
-                      onChange={(e) => setFocusSettings(prev => ({ ...prev, autoScroll: e.target.checked }))}
-                      className="mr-2"
-                    />
-                    <span className="text-[var(--text-primary)] dyslexia-text">Auto Scroll</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={focusSettings.wordByWord}
-                      onChange={(e) => setFocusSettings(prev => ({ ...prev, wordByWord: e.target.checked }))}
-                      className="mr-2"
-                    />
-                    <span className="text-[var(--text-primary)] dyslexia-text">Word by Word</span>
-                  </label>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                    Reading Speed: {readingSpeed} WPM
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2 dyslexia-text">
+                    Reading Speed: {speed} WPM
                   </label>
                   <input
                     type="range"
                     min="100"
                     max="400"
                     step="25"
-                    value={readingSpeed}
-                    onChange={(e) => setReadingSpeed(parseInt(e.target.value))}
+                    value={speed}
+                    onChange={(e) => setSpeed(parseInt(e.target.value))}
                     className="w-full"
                   />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    )
-  }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 ${getBackgroundClass(focusSettings.backgroundColor)} flex flex-col focus-mode`}
-      ref={focusRef}
-    >
-      {/* Header Controls */}
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={exitFocusMode}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                <div>
+                  <label className="block text-sm font-medium mb-2 dyslexia-text">
+                    Pause Between Lines: {pauseTime}ms
+                  </label>
+                  <input
+                    type="range"
+                    min="200"
+                    max="2000"
+                    step="100"
+                    value={pauseTime}
+                    onChange={(e) => setPauseTime(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={wordByWord}
+                      onChange={(e) => setWordByWord(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="dyslexia-text">Word-by-Word Mode</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Input Section */}
+        {!isPlaying && !isPaused && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
           >
-            <X className="h-6 w-6" />
-          </button>
-          
-          <div className="text-white/70 dyslexia-text">
-            Focus Mode
-          </div>
-        </div>
-
-        {focusSettings.showProgress && (
-          <div className="flex items-center space-x-4">
-            <div className="text-white/70 dyslexia-text">
-              {currentLineIndex + 1} / {lines.length}
-            </div>
-            <div className="w-32 bg-white/20 rounded-full h-2">
-              <div 
-                className="bg-white h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentLineIndex + 1) / lines.length) * 100}%` }}
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <h2 className="text-lg font-semibold mb-4 dyslexia-text">Enter Text</h2>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste your text here to begin reading in focus mode..."
+                className="w-full h-48 p-4 bg-gray-900 border border-gray-700 rounded-lg text-white dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{
+                  lineHeight: '1.8',
+                  letterSpacing: '0.05em'
+                }}
               />
+
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm text-gray-400 dyslexia-text">
+                  {text.split(' ').filter(w => w.trim()).length} words
+                </span>
+                <button
+                  onClick={handleStart}
+                  disabled={!text.trim()}
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dyslexia-text"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Start Focus Reading
+                </button>
+              </div>
             </div>
-          </div>
+
+            {/* Sample Texts */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 dyslexia-text">Sample Texts</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {sampleTexts.map((sample, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setText(sample.content)}
+                    className="text-left p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors border border-gray-700"
+                  >
+                    <div className="font-medium text-white dyslexia-text mb-2">
+                      {sample.title}
+                    </div>
+                    <div className="text-sm text-gray-400 dyslexia-text line-clamp-2">
+                      {sample.content.substring(0, 100)}...
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Reading Display */}
+        {(isPlaying || isPaused) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center min-h-[60vh]"
+          >
+            <div className="w-full max-w-4xl">
+              {/* Progress Bar */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400 dyslexia-text">
+                    Progress: {currentIndex + 1} / {words.length}
+                  </span>
+                  <span className="text-sm text-gray-400 dyslexia-text">
+                    {Math.round(progress)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Word Display */}
+              <div className="bg-gray-800 rounded-2xl p-12 border border-gray-700 min-h-[300px] flex items-center justify-center">
+                <div
+                  className="text-4xl md:text-6xl font-bold text-center dyslexia-text"
+                  style={{
+                    lineHeight: '1.6',
+                    letterSpacing: '0.05em'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: getDisplayText() }}
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-center space-x-4 mt-8">
+                {!isPaused ? (
+                  <button
+                    onClick={handlePause}
+                    className="flex items-center justify-center w-14 h-14 bg-yellow-600 text-white rounded-full hover:bg-yellow-700 transition-colors"
+                  >
+                    <Pause className="h-6 w-6" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleResume}
+                    className="flex items-center justify-center w-14 h-14 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
+                  >
+                    <Play className="h-6 w-6" />
+                  </button>
+                )}
+
+                <button
+                  onClick={handleStop}
+                  className="flex items-center justify-center w-14 h-14 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                >
+                  <Square className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="text-center mt-4">
+                <span className="text-sm text-gray-400 dyslexia-text">
+                  {isPaused ? 'Paused' : 'Reading...'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
 
-      {/* Main Reading Area */}
-      <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
-        <div className="max-w-4xl w-full">
-          {focusSettings.wordByWord ? (
-            // Word-by-word display
-            <div className="text-center">
-              <motion.div
-                key={currentWordIndex}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`p-8 rounded-lg dyslexia-text ${getFontSizeClass(focusSettings.fontSize)} ${getLineHeightClass(focusSettings.lineHeight)} ${getHighlightClass(focusSettings.highlightColor)} border-2`}
-                style={{
-                  letterSpacing: '0.1em',
-                  wordSpacing: '0.2em'
-                }}
-              >
-                {words[currentWordIndex] || ''}
-              </motion.div>
-            </div>
-          ) : (
-            // Line-by-line display
-            lines.map((line, index) => (
-              <motion.div
-                key={index}
-                ref={index === currentLineIndex ? currentLineRef : null}
-                initial={{ opacity: 0.3 }}
-                animate={{ 
-                  opacity: index === currentLineIndex ? 1 : 0.3,
-                  scale: index === currentLineIndex ? 1 : 0.95
-                }}
-                className={`p-6 mb-4 rounded-lg dyslexia-text transition-all duration-300 ${
-                  index === currentLineIndex 
-                    ? `${getHighlightClass(focusSettings.highlightColor)} border-2 reading-line`
-                    : 'border-2 border-transparent'
-                } ${getFontSizeClass(focusSettings.fontSize)} ${getLineHeightClass(focusSettings.lineHeight)}`}
-                style={{
-                  letterSpacing: '0.05em',
-                  wordSpacing: '0.1em'
-                }}
-              >
-                {line.trim()}.
-              </motion.div>
-            ))
-          )}
-        </div>
-      </div>
+      <style>{`
+        .current-word {
+          background: rgba(168, 85, 247, 0.3);
+          padding: 8px 16px;
+          border-radius: 8px;
+          animation: pulse 1s infinite;
+        }
 
-      {/* Bottom Controls */}
-      <div className="flex items-center justify-center p-6 border-t border-white/10">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={prevLine}
-            disabled={currentLineIndex === 0}
-            className="p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <SkipBack className="h-6 w-6" />
-          </button>
-          
-          <button
-            onClick={isReading ? pauseReading : startReading}
-            className="p-4 bg-white/20 text-white hover:bg-white/30 rounded-full transition-colors"
-          >
-            {isReading ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-          </button>
-          
-          <button
-            onClick={nextLine}
-            disabled={currentLineIndex === lines.length - 1}
-            className="p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <SkipForward className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-    </motion.div>
+        .completed-word {
+          opacity: 0.5;
+        }
+
+        .upcoming-word {
+          opacity: 0.3;
+        }
+
+        @keyframes pulse {
+          0%, 100% { background: rgba(168, 85, 247, 0.3); }
+          50% { background: rgba(168, 85, 247, 0.5); }
+        }
+      `}</style>
+    </div>
   )
 }
 

@@ -2,14 +2,14 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { 
-  BookOpen, 
-  Menu, 
-  X, 
-  Sun, 
-  Moon, 
-  Settings, 
-  LogOut, 
+import {
+  BookOpen,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Settings,
+  LogOut,
   User,
   Volume2,
   Languages,
@@ -62,7 +62,7 @@ const Navbar = () => {
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = location.pathname === item.href
-                
+
                 return (
                   <Link
                     key={item.name}
@@ -103,7 +103,7 @@ const Navbar = () => {
                 >
                   <User className="h-5 w-5" />
                 </button>
-                
+
                 {showUserMenu && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -171,7 +171,7 @@ const Navbar = () => {
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = location.pathname === item.href
-                
+
                 return (
                   <Link
                     key={item.name}

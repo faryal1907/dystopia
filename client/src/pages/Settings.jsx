@@ -1,10 +1,11 @@
 // client/src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Settings as SettingsIcon, User, Eye, Volume2, Languages, Palette, Save, RotateCcw, Type,Sliders, Monitor } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import { useUser } from '../context/UserContext'
-import { useTheme } from '../context/ThemeContext'
+import { Settings as SettingsIcon, User, Eye, Volume2, Languages, Palette, Save, RotateCcw, Type, Sliders, Monitor, Zap } from 'lucide-react'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useUser } from '../context/UserContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
+import { translationService } from '../utils/translation'
 
 const Settings = () => {
   const { user } = useAuth()
@@ -20,22 +21,31 @@ const Settings = () => {
     letterSpacing: 'normal',
     fontFamily: 'lexend',
     wordSpacing: 'normal',
-    
+
     // Visual
     backgroundColor: 'default',
     backgroundOverlay: false,
     highlightColor: 'blue',
-    
+
     // Audio
     readingSpeed: 1.0,
     voice: 'default',
     autoPlay: false,
-    
+
     // Reading Experience
     highlightReading: true,
     showProgress: true,
     dyslexiaFriendly: true,
-    
+
+    // Focus Mode
+    focusModeSpeed: 200,
+    focusWordByWord: false,
+    focusPauseTime: 500,
+
+    // Translation
+    preferredTranslationLanguage: 'es',
+    autoTranslate: true,
+
     // Language
     language: 'en'
   })
@@ -49,14 +59,14 @@ const Settings = () => {
   const handleInputChange = (key, value) => {
     setFormSettings(prev => ({ ...prev, [key]: value }))
     setSaved(false)
-    
+
     // Apply settings immediately for visual feedback
     applySettingsPreview({ ...formSettings, [key]: value })
   }
 
   const applySettingsPreview = (settings) => {
     const root = document.documentElement
-    
+
     // Font family
     const fontFamilyMap = {
       lexend: '"Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -65,11 +75,11 @@ const Settings = () => {
       verdana: 'Verdana, sans-serif',
       georgia: 'Georgia, serif'
     }
-    
+
     if (settings.fontFamily) {
       document.body.style.fontFamily = fontFamilyMap[settings.fontFamily] || fontFamilyMap.lexend
     }
-    
+
     // Font size
     const fontSizeMap = {
       small: '14px',
@@ -78,12 +88,12 @@ const Settings = () => {
       xl: '20px',
       xxl: '24px'
     }
-    
+
     if (settings.fontSize) {
       root.style.setProperty('--base-font-size', fontSizeMap[settings.fontSize])
       document.body.style.fontSize = fontSizeMap[settings.fontSize]
     }
-    
+
     // Line height
     const lineHeightMap = {
       tight: '1.25',
@@ -91,11 +101,11 @@ const Settings = () => {
       relaxed: '1.75',
       loose: '2'
     }
-    
+
     if (settings.lineHeight) {
       document.body.style.lineHeight = lineHeightMap[settings.lineHeight]
     }
-    
+
     // Letter spacing
     const letterSpacingMap = {
       tight: '-0.025em',
@@ -103,11 +113,11 @@ const Settings = () => {
       wide: '0.025em',
       wider: '0.05em'
     }
-    
+
     if (settings.letterSpacing) {
       document.body.style.letterSpacing = letterSpacingMap[settings.letterSpacing]
     }
-    
+
     // Word spacing
     const wordSpacingMap = {
       tight: '0',
@@ -115,18 +125,18 @@ const Settings = () => {
       wide: '0.2em',
       wider: '0.3em'
     }
-    
+
     if (settings.wordSpacing) {
       document.body.style.wordSpacing = wordSpacingMap[settings.wordSpacing]
     }
-    
+
     // Background overlay
     if (settings.backgroundOverlay) {
       root.classList.add('background-overlay')
     } else {
       root.classList.remove('background-overlay')
     }
-    
+
     // Dyslexia friendly
     if (settings.dyslexiaFriendly) {
       root.classList.add('dyslexia-friendly')
@@ -166,6 +176,11 @@ const Settings = () => {
       highlightReading: true,
       showProgress: true,
       dyslexiaFriendly: true,
+      focusModeSpeed: 200,
+      focusWordByWord: false,
+      focusPauseTime: 500,
+      preferredTranslationLanguage: 'es',
+      autoTranslate: true,
       language: 'en'
     }
     setFormSettings(defaultSettings)
@@ -183,7 +198,7 @@ const Settings = () => {
           label: 'Font Family',
           type: 'select',
           options: [
-            { value: 'lexend', label: 'Lexend (Recommended)' },
+            { value: 'lexend', label: 'Lexend (Recommended for Dyslexia)' },
             { value: 'opendyslexic', label: 'OpenDyslexic' },
             { value: 'arial', label: 'Arial' },
             { value: 'verdana', label: 'Verdana' },
@@ -195,11 +210,11 @@ const Settings = () => {
           label: 'Font Size',
           type: 'select',
           options: [
-            { value: 'small', label: 'Small' },
-            { value: 'medium', label: 'Medium' },
-            { value: 'large', label: 'Large' },
-            { value: 'xl', label: 'Extra Large' },
-            { value: 'xxl', label: 'Double XL' }
+            { value: 'small', label: 'Small (14px)' },
+            { value: 'medium', label: 'Medium (16px)' },
+            { value: 'large', label: 'Large (18px)' },
+            { value: 'xl', label: 'Extra Large (20px)' },
+            { value: 'xxl', label: 'Double XL (24px)' }
           ]
         },
         {
@@ -207,10 +222,10 @@ const Settings = () => {
           label: 'Line Height',
           type: 'select',
           options: [
-            { value: 'tight', label: 'Tight' },
-            { value: 'normal', label: 'Normal' },
-            { value: 'relaxed', label: 'Relaxed' },
-            { value: 'loose', label: 'Loose' }
+            { value: 'tight', label: 'Tight (1.25)' },
+            { value: 'normal', label: 'Normal (1.5)' },
+            { value: 'relaxed', label: 'Relaxed (1.75)' },
+            { value: 'loose', label: 'Loose (2.0)' }
           ]
         },
         {
@@ -247,7 +262,7 @@ const Settings = () => {
           type: 'select',
           options: [
             { value: 'default', label: 'Default' },
-            { value: 'sepia', label: 'Sepia' },
+            { value: 'sepia', label: 'Sepia (Warm)' },
             { value: 'dark', label: 'Dark' },
             { value: 'high-contrast', label: 'High Contrast' }
           ]
@@ -304,6 +319,58 @@ const Settings = () => {
       ]
     },
     {
+      title: 'Focus Mode',
+      icon: Zap,
+      settings: [
+        {
+          key: 'focusModeSpeed',
+          label: 'Focus Mode Speed (Words Per Minute)',
+          type: 'range',
+          min: 100,
+          max: 400,
+          step: 25,
+          suffix: ' WPM'
+        },
+        {
+          key: 'focusPauseTime',
+          label: 'Pause Between Lines (milliseconds)',
+          type: 'range',
+          min: 200,
+          max: 2000,
+          step: 100,
+          suffix: 'ms'
+        },
+        {
+          key: 'focusWordByWord',
+          label: 'Word-by-Word Mode',
+          type: 'checkbox',
+          description: 'Display one word at a time instead of full lines'
+        }
+      ]
+    },
+    {
+      title: 'Translation',
+      icon: Languages,
+      settings: [
+        {
+          key: 'preferredTranslationLanguage',
+          label: 'Preferred Translation Language',
+          type: 'select',
+          description: 'All text will be automatically translated to this language',
+          options: translationService.getSupportedLanguages().map(lang => ({
+            value: lang.code,
+            label: lang.name
+          }))
+        },
+        {
+          key: 'autoTranslate',
+          label: 'Auto-Translate',
+          type: 'checkbox',
+          description: 'Automatically translate text as you type'
+        }
+      ]
+    },
+    {
       title: 'Reading Experience',
       icon: User,
       settings: [
@@ -323,30 +390,7 @@ const Settings = () => {
           key: 'dyslexiaFriendly',
           label: 'Dyslexia-Friendly Mode',
           type: 'checkbox',
-          description: 'Optimizes text display for dyslexic readers'
-        }
-      ]
-    },
-    {
-      title: 'Language',
-      icon: Languages,
-      settings: [
-        {
-          key: 'language',
-          label: 'Interface Language',
-          type: 'select',
-          options: [
-            { value: 'en', label: 'English' },
-            { value: 'es', label: 'Spanish' },
-            { value: 'fr', label: 'French' },
-            { value: 'de', label: 'German' },
-            { value: 'it', label: 'Italian' },
-            { value: 'pt', label: 'Portuguese' },
-            { value: 'ru', label: 'Russian' },
-            { value: 'zh', label: 'Chinese' },
-            { value: 'ja', label: 'Japanese' },
-            { value: 'ko', label: 'Korean' }
-          ]
+          description: 'Optimizes text display for dyslexic readers with enhanced spacing'
         }
       ]
     }
@@ -383,7 +427,7 @@ const Settings = () => {
             <Palette className="h-5 w-5 mr-2" />
             Appearance
           </h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg">
               <div>
@@ -449,7 +493,7 @@ const Settings = () => {
                   <Icon className="h-5 w-5 mr-2" />
                   {section.title}
                 </h2>
-                
+
                 <div className="space-y-6">
                   {section.settings.map((setting) => (
                     <div key={setting.key} className="flex items-center justify-between">
@@ -463,7 +507,7 @@ const Settings = () => {
                           </p>
                         )}
                       </div>
-                      
+
                       <div className="min-w-[200px]">
                         {setting.type === 'select' && (
                           <select
@@ -478,7 +522,7 @@ const Settings = () => {
                             ))}
                           </select>
                         )}
-                        
+
                         {setting.type === 'range' && (
                           <div>
                             <input
@@ -495,7 +539,7 @@ const Settings = () => {
                             </div>
                           </div>
                         )}
-                        
+
                         {setting.type === 'checkbox' && (
                           <label className="flex items-center">
                             <input
@@ -532,13 +576,13 @@ const Settings = () => {
             <RotateCcw className="h-5 w-5 mr-2" />
             Reset to Defaults
           </button>
-          
+
           <button
             onClick={handleSave}
             disabled={loading}
             className={`inline-flex items-center px-6 py-3 rounded-lg transition-colors dyslexia-text ${
-              saved 
-                ? 'bg-green-600 text-white' 
+              saved
+                ? 'bg-green-600 text-white'
                 : 'bg-primary-600 text-white hover:bg-primary-700'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >

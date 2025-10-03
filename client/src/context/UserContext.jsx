@@ -1,7 +1,7 @@
 // src/context/UserContext.jsx
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { useAuth } from './AuthContext'
-import { api } from '../utils/api'
+import { useAuth } from './AuthContext.jsx'
+import { api, cachedApiCall } from '../utils/api'
 
 const UserContext = createContext({})
 
@@ -28,16 +28,26 @@ export const UserProvider = ({ children }) => {
     fontSize: 'medium',
     lineHeight: 'normal',
     letterSpacing: 'normal',
+    fontFamily: 'lexend',
+    wordSpacing: 'normal',
     readingSpeed: 1.0,
     voice: 'default',
     autoPlay: false,
     highlightReading: true,
     showProgress: true,
-    language: 'en'
+    dyslexiaFriendly: true,
+    language: 'en',
+    // Focus Mode Settings
+    focusModeSpeed: 200,
+    focusWordByWord: false,
+    focusPauseTime: 500,
+    // Translation Settings
+    preferredTranslationLanguage: 'es',
+    autoTranslate: true
   })
   const [loading, setLoading] = useState(false)
 
-  // Rate limiting: track last fetch time
+  // Refs to track last fetch times
   const lastFetchRef = useRef({
     profile: 0,
     progress: 0,
@@ -46,11 +56,26 @@ export const UserProvider = ({ children }) => {
     stats: 0
   })
 
-  // Minimum time between requests (5 minutes)
-  const MIN_FETCH_INTERVAL = 5 * 60 * 1000
+  // Minimum time between requests (10 minutes to reduce server load)
+  const MIN_FETCH_INTERVAL = 10 * 60 * 1000
+
+  // Load settings from localStorage immediately
+  useEffect(() => {
+    const savedSettings = localStorage.getItem(`voxa-settings-${user?.id || 'guest'}`)
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setSettings(prev => ({ ...prev, ...parsed }))
+        applySettingsToDocument(parsed)
+      } catch (error) {
+        console.error('Error loading settings from localStorage:', error)
+      }
+    }
+  }, [user])
 
   useEffect(() => {
     if (user) {
+      // Only fetch on initial load, then rely on local state
       fetchUserData()
     } else {
       resetUserData()
@@ -84,52 +109,21 @@ export const UserProvider = ({ children }) => {
 
     setLoading(true)
     try {
+      // Use cached API calls to reduce load
       const promises = []
-
-      // Only fetch if enough time has passed
-      if (shouldFetch('profile')) {
-        promises.push(
-          api.get(`/users/profile/${user.id}`)
-            .then(res => {
-              setUserProfile(res.data)
-              updateLastFetch('profile')
-              return res
-            })
-            .catch(() => ({ data: null }))
-        )
-      }
-
-      if (shouldFetch('progress')) {
-        promises.push(
-          api.get(`/reading/activity/${user.id}?limit=10`)
-            .then(res => {
-              setReadingProgress(Array.isArray(res.data) ? res.data : [])
-              updateLastFetch('progress')
-              return res
-            })
-            .catch(() => ({ data: [] }))
-        )
-      }
-
-      if (shouldFetch('achievements')) {
-        promises.push(
-          api.get(`/users/achievements/${user.id}`)
-            .then(res => {
-              setAchievements(Array.isArray(res.data) ? res.data : [])
-              updateLastFetch('achievements')
-              return res
-            })
-            .catch(() => ({ data: [] }))
-        )
-      }
 
       if (shouldFetch('settings')) {
         promises.push(
-          api.get(`/users/settings/${user.id}`)
-            .then(res => {
-              if (res.data) setSettings(prev => ({ ...prev, ...res.data }))
+          cachedApiCall(`settings-${user.id}`, () => api.get(`/users/settings/${user.id}`))
+            .then(data => {
+              if (data && Object.keys(data).length > 0) {
+                setSettings(prev => ({ ...prev, ...data }))
+                // Save to localStorage
+                localStorage.setItem(`voxa-settings-${user.id}`, JSON.stringify(data))
+                applySettingsToDocument(data)
+              }
               updateLastFetch('settings')
-              return res
+              return data
             })
             .catch(() => ({ data: {} }))
         )
@@ -137,13 +131,49 @@ export const UserProvider = ({ children }) => {
 
       if (shouldFetch('stats')) {
         promises.push(
-          api.get(`/reading/stats/${user.id}`)
-            .then(res => {
-              if (res.data) setStats(prev => ({ ...prev, ...res.data }))
+          cachedApiCall(`stats-${user.id}`, () => api.get(`/reading/stats/${user.id}`))
+            .then(data => {
+              if (data) setStats(prev => ({ ...prev, ...data }))
               updateLastFetch('stats')
-              return res
+              return data
             })
             .catch(() => ({ data: {} }))
+        )
+      }
+
+      if (shouldFetch('progress')) {
+        promises.push(
+          cachedApiCall(`progress-${user.id}`, () => api.get(`/reading/activity/${user.id}?limit=10`))
+            .then(data => {
+              setReadingProgress(Array.isArray(data) ? data : [])
+              updateLastFetch('progress')
+              return data
+            })
+            .catch(() => ({ data: [] }))
+        )
+      }
+
+      if (shouldFetch('achievements')) {
+        promises.push(
+          cachedApiCall(`achievements-${user.id}`, () => api.get(`/users/achievements/${user.id}`))
+            .then(data => {
+              setAchievements(Array.isArray(data) ? data : [])
+              updateLastFetch('achievements')
+              return data
+            })
+            .catch(() => ({ data: [] }))
+        )
+      }
+
+      if (shouldFetch('profile')) {
+        promises.push(
+          cachedApiCall(`profile-${user.id}`, () => api.get(`/users/profile/${user.id}`))
+            .then(data => {
+              setUserProfile(data)
+              updateLastFetch('profile')
+              return data
+            })
+            .catch(() => ({ data: null }))
         )
       }
 
@@ -168,14 +198,31 @@ export const UserProvider = ({ children }) => {
 
   const updateSettings = async (newSettings) => {
     try {
-      const response = await api.put(`/users/settings/${user.id}`, newSettings)
-      setSettings(response.data)
-      applySettingsToDocument(response.data)
-      updateLastFetch('settings')
-      return { success: true, data: response.data }
+      // Update local state immediately for responsive UI
+      const updatedSettings = { ...settings, ...newSettings }
+      setSettings(updatedSettings)
+
+      // Save to localStorage immediately
+      localStorage.setItem(`voxa-settings-${user.id}`, JSON.stringify(updatedSettings))
+
+      // Apply settings immediately
+      applySettingsToDocument(updatedSettings)
+
+      // Update server in background (non-blocking)
+      api.put(`/users/settings/${user.id}`, updatedSettings)
+        .then(() => {
+          updateLastFetch('settings')
+        })
+        .catch(error => {
+          console.error('Error syncing settings to server:', error)
+          // Settings are still saved locally, so this is not critical
+        })
+
+      return { success: true, data: updatedSettings }
     } catch (error) {
       console.error('Error updating settings:', error)
-      return { success: false, error }
+      // Still return success since local update worked
+      return { success: true, data: newSettings }
     }
   }
 
@@ -206,42 +253,59 @@ export const UserProvider = ({ children }) => {
       wider: '0.05em'
     }
     root.style.setProperty('--base-letter-spacing', letterSpacingMap[newSettings.letterSpacing] || '0')
+
+    const wordSpacingMap = {
+      tight: '0',
+      normal: '0.1em',
+      wide: '0.2em',
+      wider: '0.3em'
+    }
+    root.style.setProperty('--word-spacing', wordSpacingMap[newSettings.wordSpacing] || '0.1em')
+
+    // Background overlay
+    if (newSettings.backgroundOverlay) {
+      root.classList.add('background-overlay')
+    } else {
+      root.classList.remove('background-overlay')
+    }
+
+    // Dyslexia friendly
+    if (newSettings.dyslexiaFriendly) {
+      root.classList.add('dyslexia-friendly')
+    } else {
+      root.classList.remove('dyslexia-friendly')
+    }
   }
 
   const saveReadingProgress = async (textId, progress) => {
     try {
-      const response = await api.post('/reading/progress', {
-        userId: user.id,
-        textId,
-        ...progress
-      })
-
-      // Update local state immediately for better UX
+      // Update local stats immediately for responsive UI
       setStats(prev => ({
         ...prev,
         totalTextsRead: progress.completed ? prev.totalTextsRead + 1 : prev.totalTextsRead,
         totalReadingTime: prev.totalReadingTime + (progress.duration || 0)
       }))
 
-      // Only fetch fresh stats if enough time has passed
-      if (shouldFetch('stats')) {
-        const statsRes = await api.get(`/reading/stats/${user.id}`).catch(() => ({ data: {} }))
-        if (statsRes.data) {
-          setStats(prev => ({ ...prev, ...statsRes.data }))
-          updateLastFetch('stats')
-        }
+      // Add to local progress
+      const newSession = {
+        _id: textId,
+        title: progress.text || 'Reading Session',
+        progress: { percentage: progress.progress || 0 },
+        createdAt: new Date(),
+        sessionType: progress.sessionType || 'regular'
       }
+      setReadingProgress(prev => [newSession, ...prev.slice(0, 9)])
 
-      // Only fetch fresh activity if enough time has passed
-      if (shouldFetch('progress')) {
-        const activityRes = await api.get(`/reading/activity/${user.id}?limit=10`).catch(() => ({ data: [] }))
-        if (activityRes.data) {
-          setReadingProgress(Array.isArray(activityRes.data) ? activityRes.data : [])
-          updateLastFetch('progress')
-        }
-      }
+      // Save to server in background (non-blocking)
+      api.post('/reading/progress', {
+        userId: user.id,
+        textId,
+        ...progress
+      }).catch(error => {
+        console.error('Error saving progress to server:', error)
+      })
 
-      return { success: true, data: response.data }
+      return { success: true }
     } catch (error) {
       console.error('Error saving progress:', error)
       return { success: false, error }
@@ -250,10 +314,21 @@ export const UserProvider = ({ children }) => {
 
   const addAchievement = async (achievement) => {
     try {
-      const response = await api.post(`/users/achievements/${user.id}`, achievement)
-      setAchievements(response.data)
-      updateLastFetch('achievements')
-      return { success: true, data: response.data }
+      // Add to local state immediately
+      const newAchievement = {
+        ...achievement,
+        earnedAt: new Date(),
+        id: `achievement-${Date.now()}`
+      }
+      setAchievements(prev => [...prev, newAchievement])
+
+      // Save to server in background
+      api.post(`/users/achievements/${user.id}`, achievement)
+        .catch(error => {
+          console.error('Error syncing achievement to server:', error)
+        })
+
+      return { success: true, data: newAchievement }
     } catch (error) {
       console.error('Error adding achievement:', error)
       return { success: false, error }
@@ -262,10 +337,41 @@ export const UserProvider = ({ children }) => {
 
   const updateReadingStreak = async () => {
     try {
-      const response = await api.put(`/reading/streak/${user.id}`)
-      setStats(prev => ({ ...prev, readingStreak: response.data.streak }))
-      updateLastFetch('stats')
-      return { success: true, data: response.data }
+      // Update locally first
+      const today = new Date()
+      const lastReading = stats.lastReadingDate ? new Date(stats.lastReadingDate) : null
+
+      let newStreak = stats.readingStreak || 0
+
+      if (lastReading) {
+        const daysDiff = Math.floor((today - lastReading) / (1000 * 60 * 60 * 24))
+        if (daysDiff === 0) {
+          // Same day
+          return { success: true, data: { streak: newStreak } }
+        } else if (daysDiff === 1) {
+          // Consecutive day
+          newStreak += 1
+        } else {
+          // Streak broken
+          newStreak = 1
+        }
+      } else {
+        newStreak = 1
+      }
+
+      setStats(prev => ({
+        ...prev,
+        readingStreak: newStreak,
+        lastReadingDate: today
+      }))
+
+      // Sync to server in background
+      api.put(`/reading/streak/${user.id}`)
+        .catch(error => {
+          console.error('Error syncing streak to server:', error)
+        })
+
+      return { success: true, data: { streak: newStreak } }
     } catch (error) {
       console.error('Error updating streak:', error)
       return { success: false, error }
