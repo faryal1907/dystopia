@@ -219,6 +219,13 @@ The application will be available at:
 - Pitch adjustment
 - Volume control
 
+### Dictionary & Pronunciation Helper
+- Click any word to see instant definitions, synonyms, and pronunciation
+- Audio pronunciation with native voice
+- Supports 130+ languages via Free Dictionary API
+- Smart caching for fast lookups
+- No API key required - completely free
+
 ## 🔒 Security Features
 
 - **Rate Limiting**: Prevents API abuse

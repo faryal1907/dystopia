@@ -8,6 +8,7 @@ import { connectDB } from './config/database.js'
 import userRoutes from './routes/userRoutes.js'
 import readingRoutes from './routes/readingRoutes.js'
 import translationRoutes from './routes/translationRoutes.js'
+import dictionaryRoutes from './routes/dictionaryRoutes.js';
 
 dotenv.config()
 
@@ -31,6 +32,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
+
+app.use('/api/dictionary', dictionaryRoutes);
 
 // FIXED: More lenient rate limiting to prevent 429 errors
 const generalLimiter = rateLimit({

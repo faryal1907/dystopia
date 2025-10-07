@@ -1,8 +1,10 @@
+// client/src/pages/FocusMode.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Focus, Play, Pause, Square, Settings as SettingsIcon, X, ArrowLeft, Sliders } from 'lucide-react'
 import { useUser } from '../context/UserContext.jsx'
 import { useNavigate } from 'react-router-dom'
+import WordTooltip from '../components/WordTooltip'
 
 const FocusMode = () => {
   const { settings, saveReadingProgress } = useUser()
@@ -18,6 +20,10 @@ const FocusMode = () => {
   const [wordByWord, setWordByWord] = useState(settings?.focusWordByWord || false)
   const intervalRef = useRef(null)
   const startTimeRef = useRef(null)
+  
+  // Dictionary feature state
+  const [selectedWord, setSelectedWord] = useState(null)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     return () => {
@@ -26,6 +32,22 @@ const FocusMode = () => {
       }
     }
   }, [])
+
+  // Word click handler for dictionary
+  const handleWordClick = (event) => {
+    if (isPlaying) return // Don't allow clicks during playback
+    
+    const clickedWord = event.target.textContent.trim()
+    const cleanWord = clickedWord.replace(/[^\w\s'-]/gi, '').trim()
+    
+    if (cleanWord.length > 0 && cleanWord.length < 50) {
+      setSelectedWord(cleanWord)
+      setTooltipPosition({
+        x: event.clientX,
+        y: event.clientY
+      })
+    }
+  }
 
   const handleStart = () => {
     if (!text.trim()) return
@@ -238,17 +260,50 @@ const FocusMode = () => {
             className="mb-8"
           >
             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-              <h2 className="text-lg font-semibold mb-4 dyslexia-text">Enter Text</h2>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Paste your text here to begin reading in focus mode..."
-                className="w-full h-48 p-4 bg-gray-900 border border-gray-700 rounded-lg text-white dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-                style={{
-                  lineHeight: '1.8',
-                  letterSpacing: '0.05em'
-                }}
-              />
+              <h2 className="text-lg font-semibold mb-4 dyslexia-text">
+                Enter Text
+                <span className="text-xs ml-2 text-gray-400">(Click any word for definition)</span>
+              </h2>
+              
+              <div className="relative">
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Paste your text here to begin reading in focus mode... Click any word for definition!"
+                  className="w-full h-48 p-4 bg-gray-900 border border-gray-700 rounded-lg text-white dyslexia-text resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{
+                    lineHeight: '1.8',
+                    letterSpacing: '0.05em'
+                  }}
+                />
+                
+                {/* Clickable overlay when not playing */}
+                {text && (
+                  <div 
+                    className="absolute inset-0 p-4 overflow-y-auto bg-transparent"
+                    style={{
+                      lineHeight: '1.8',
+                      letterSpacing: '0.05em',
+                      whiteSpace: 'pre-wrap'
+                    }}
+                  >
+                    {text.split(/(\s+)/).map((part, idx) => {
+                      if (part.trim()) {
+                        return (
+                          <span
+                            key={idx}
+                            onClick={handleWordClick}
+                            className="cursor-pointer hover:bg-purple-900/30 px-0.5 rounded transition-colors inline-block"
+                          >
+                            {part}
+                          </span>
+                        )
+                      }
+                      return <span key={idx}>{part}</span>
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-400 dyslexia-text">
@@ -361,6 +416,15 @@ const FocusMode = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Word Tooltip */}
+      {selectedWord && (
+        <WordTooltip
+          word={selectedWord}
+          position={tooltipPosition}
+          onClose={() => setSelectedWord(null)}
+        />
+      )}
 
       <style>{`
         .current-word {

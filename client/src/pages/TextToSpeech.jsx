@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import { ttsService } from '../utils/textToSpeech.js'
 import { useUser } from '../context/UserContext.jsx'
+import WordTooltip from '../components/WordTooltip'
 
 const TextToSpeech = () => {
   const { saveReadingProgress } = useUser()
@@ -24,15 +25,21 @@ const TextToSpeech = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Dictionary feature state
+  const [selectedWord, setSelectedWord] = useState(null)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [readMode, setReadMode] = useState(false)
+  
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
+  const displayRef = useRef(null)
 
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = ttsService.getVoices()
       setVoices(availableVoices)
       if (availableVoices.length > 0 && !selectedVoice) {
-        // Prefer English voices
         const englishVoice = availableVoices.find(voice => 
           voice.lang.includes('en') && voice.name.includes('Google')
         ) || availableVoices.find(voice => voice.lang.includes('en'))
@@ -42,13 +49,31 @@ const TextToSpeech = () => {
 
     loadVoices()
     
-    // Retry loading voices multiple times as they load asynchronously
     const intervals = [100, 500, 1000, 2000].map(delay => 
       setTimeout(loadVoices, delay)
     )
     
     return () => intervals.forEach(clearTimeout)
   }, [selectedVoice])
+
+  // Word click handler for dictionary
+  const handleWordClick = (event) => {
+    if (isPlaying) return
+    
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const clickedWord = event.target.textContent.trim()
+    const cleanWord = clickedWord.replace(/[^\w\s'-]/gi, '').trim()
+    
+    if (cleanWord.length > 0 && cleanWord.length < 50 && !cleanWord.includes(' ')) {
+      setSelectedWord(cleanWord)
+      setTooltipPosition({
+        x: event.clientX,
+        y: event.clientY
+      })
+    }
+  }
 
   const handleSpeak = async () => {
     if (!text.trim()) {
@@ -71,6 +96,7 @@ const TextToSpeech = () => {
           setIsPlaying(true)
           setIsPaused(false)
           setLoading(false)
+          setReadMode(false) // Disable read mode when playing
           setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: text.split(' ').length, progress: 0 })
         },
         onProgress: (progress) => {
@@ -83,7 +109,6 @@ const TextToSpeech = () => {
           setSuccess('Text read successfully!')
           setTimeout(() => setSuccess(''), 3000)
           
-          // Save reading progress
           const duration = Date.now() - startTime
           saveReadingProgress(`tts-${Date.now()}`, {
             text: text.substring(0, 100),
@@ -170,6 +195,7 @@ const TextToSpeech = () => {
     handleStop()
     setError('')
     setSuccess('')
+    setReadMode(false)
     setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
   }
 
@@ -218,6 +244,27 @@ const TextToSpeech = () => {
     }).join(' ')
   }
 
+  const renderClickableText = () => {
+    if (!text) return null
+    
+    return text.split(/(\s+)/).map((part, idx) => {
+      if (part.trim()) {
+        return (
+          <span
+            key={idx}
+            onClick={handleWordClick}
+            className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 px-0.5 rounded transition-colors inline-block"
+            style={{ userSelect: 'text' }}
+            title="Click for definition"
+          >
+            {part}
+          </span>
+        )
+      }
+      return <span key={idx}>{part}</span>
+    })
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -257,8 +304,27 @@ const TextToSpeech = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
                   Enter Text
+                  <span className="text-xs ml-2 text-[var(--text-secondary)]">(Click any word for definition)</span>
                 </h2>
                 <div className="flex items-center space-x-2">
+                  {!readMode && text && (
+                    <button
+                      onClick={() => setReadMode(true)}
+                      className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      title="Switch to read mode"
+                    >
+                      📖 Read Mode
+                    </button>
+                  )}
+                  {readMode && (
+                    <button
+                      onClick={() => setReadMode(false)}
+                      className="px-3 py-1 text-xs bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                      title="Switch to edit mode"
+                    >
+                      ✏️ Edit Mode
+                    </button>
+                  )}
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
@@ -285,7 +351,8 @@ const TextToSpeech = () => {
                 </div>
               </div>
               
-              <div className="relative">
+              {/* Edit Mode - Textarea */}
+              {!readMode && !isPlaying && (
                 <textarea
                   ref={textareaRef}
                   value={text}
@@ -298,18 +365,41 @@ const TextToSpeech = () => {
                   }}
                   maxLength={5000}
                 />
-                {isPlaying && currentProgress.currentWord && (
-                  <div className="absolute inset-0 pointer-events-none p-4 text-transparent dyslexia-text"
-                    style={{
-                      lineHeight: '1.8',
-                      letterSpacing: '0.05em'
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: highlightCurrentWord(text, currentProgress.currentIndex)
-                    }}
-                  />
-                )}
-              </div>
+              )}
+
+              {/* Read Mode - Clickable Text */}
+              {readMode && !isPlaying && (
+                <div
+                  ref={displayRef}
+                  className="w-full h-64 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text overflow-y-auto"
+                  style={{
+                    lineHeight: '1.8',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word'
+                  }}
+                >
+                  {text ? renderClickableText() : (
+                    <span className="text-gray-400">No text entered yet. Switch to Edit Mode to add text.</span>
+                  )}
+                </div>
+              )}
+
+              {/* Playing Mode - Highlighted Text */}
+              {isPlaying && (
+                <div
+                  className="w-full h-64 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text overflow-y-auto"
+                  style={{
+                    lineHeight: '1.8',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word'
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: highlightCurrentWord(text, currentProgress.currentIndex)
+                  }}
+                />
+              )}
               
               <input
                 ref={fileInputRef}
@@ -319,13 +409,17 @@ const TextToSpeech = () => {
                 className="hidden"
               />
               
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-[var(--text-secondary)] dyslexia-text">
+                  {isPlaying ? '▶️ Playing...' : readMode ? '📖 Read mode - Click words for definitions' : '✏️ Edit mode - Type or paste text'}
+                </p>
                 <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
                   {text.length}/5000 characters
                 </span>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Estimated time: {Math.ceil(text.split(' ').length / (rate * 150))} min
-                </div>
+              </div>
+
+              <div className="text-sm text-[var(--text-secondary)] dyslexia-text text-right mt-1">
+                Estimated time: {Math.ceil(text.split(' ').length / (rate * 150))} min
               </div>
 
               {/* Progress Bar */}
@@ -365,7 +459,10 @@ const TextToSpeech = () => {
                 {sampleTexts.map((sample, index) => (
                   <button
                     key={index}
-                    onClick={() => setText(sample.content)}
+                    onClick={() => {
+                      setText(sample.content)
+                      setReadMode(false)
+                    }}
                     disabled={isPlaying}
                     className="w-full text-left p-3 bg-[var(--bg-secondary)] rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -381,7 +478,7 @@ const TextToSpeech = () => {
             </div>
           </div>
 
-          {/* Controls */}
+          {/* Controls - Keep the same as before */}
           <div className="space-y-6">
             {/* Playback Controls */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
@@ -532,6 +629,15 @@ const TextToSpeech = () => {
           </div>
         </div>
       </div>
+
+      {/* Word Tooltip */}
+      {selectedWord && (
+        <WordTooltip
+          word={selectedWord}
+          position={tooltipPosition}
+          onClose={() => setSelectedWord(null)}
+        />
+      )}
     </div>
   )
 }
