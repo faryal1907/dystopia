@@ -1,6 +1,6 @@
 export const analyticsService = {
   /**
-   * Calculate reading statistics
+   * Calculate reading statistics from sessions
    */
   calculateStats(sessions) {
     if (!sessions || sessions.length === 0) {
@@ -10,32 +10,35 @@ export const analyticsService = {
         totalMinutes: 0,
         avgWordsPerMinute: 0,
         completionRate: 0,
-        favoriteFeature: 'None'
+        favoriteFeature: 'None',
+        featureBreakdown: {}
       }
     }
 
     const totalSessions = sessions.length
     const totalWords = sessions.reduce((sum, s) => sum + (s.wordsRead || 0), 0)
     const totalMinutes = sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / 60000
-    const completedSessions = sessions.filter(s => s.completed).length
+    const completedSessions = sessions.filter(s => s.progress?.completed).length
     
     // Calculate feature usage
     const featureCount = {}
     sessions.forEach(s => {
-      const type = s.sessionType || 'unknown'
+      const type = s.sessionType || 'regular'
       featureCount[type] = (featureCount[type] || 0) + 1
     })
     
-    const favoriteFeature = Object.keys(featureCount).reduce((a, b) => 
-      featureCount[a] > featureCount[b] ? a : b, 'None'
-    )
+    const favoriteFeature = Object.keys(featureCount).length > 0
+      ? Object.keys(featureCount).reduce((a, b) => 
+          featureCount[a] > featureCount[b] ? a : b
+        )
+      : 'None'
 
     return {
       totalSessions,
       totalWords,
       totalMinutes: Math.round(totalMinutes),
       avgWordsPerMinute: totalMinutes > 0 ? Math.round(totalWords / totalMinutes) : 0,
-      completionRate: Math.round((completedSessions / totalSessions) * 100),
+      completionRate: totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0,
       favoriteFeature: this.formatFeatureName(favoriteFeature),
       featureBreakdown: featureCount
     }
@@ -77,7 +80,7 @@ export const analyticsService = {
     }
 
     // Completion rate insight
-    if (stats.completionRate < 50) {
+    if (stats.completionRate < 50 && stats.totalSessions > 5) {
       insights.push({
         type: 'completion',
         icon: '🎯',
@@ -85,7 +88,7 @@ export const analyticsService = {
         message: `You complete ${stats.completionRate}% of sessions. Try shorter texts to build the habit!`,
         color: 'orange'
       })
-    } else if (stats.completionRate > 80) {
+    } else if (stats.completionRate > 80 && stats.totalSessions > 3) {
       insights.push({
         type: 'completion',
         icon: '🏆',
@@ -96,7 +99,7 @@ export const analyticsService = {
     }
 
     // Feature usage insight
-    if (stats.favoriteFeature !== 'None') {
+    if (stats.favoriteFeature !== 'None' && stats.totalSessions > 10) {
       insights.push({
         type: 'feature',
         icon: '⭐',
@@ -125,6 +128,17 @@ export const analyticsService = {
       })
     }
 
+    // Encourage trying new features
+    if (Object.keys(stats.featureBreakdown).length === 1 && stats.totalSessions > 5) {
+      insights.push({
+        type: 'explore',
+        icon: '🎨',
+        title: 'Explore More',
+        message: 'Try our AI Summarization, Translation, or Focus Mode for a complete experience!',
+        color: 'blue'
+      })
+    }
+
     return insights
   },
 
@@ -137,7 +151,7 @@ export const analyticsService = {
       'translation': 'Translation',
       'focus-mode': 'Focus Mode',
       'summarization': 'AI Summarization',
-      'unknown': 'General Reading'
+      'regular': 'General Reading'
     }
     return names[feature] || feature
   },
@@ -153,15 +167,18 @@ export const analyticsService = {
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dayName = days[date.getDay()]
+      date.setHours(0, 0, 0, 0)
+      
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
       
       const daySessions = sessions.filter(s => {
-        const sessionDate = new Date(s.timestamp || s.createdAt)
-        return sessionDate.toDateString() === date.toDateString()
+        const sessionDate = new Date(s.createdAt)
+        return sessionDate >= date && sessionDate < nextDate
       })
 
       weekData.push({
-        day: dayName,
+        day: days[date.getDay()],
         sessions: daySessions.length,
         words: daySessions.reduce((sum, s) => sum + (s.wordsRead || 0), 0),
         minutes: Math.round(daySessions.reduce((sum, s) => sum + (s.duration || 0), 0) / 60000)
@@ -172,26 +189,44 @@ export const analyticsService = {
   },
 
   /**
-   * Calculate reading streak
+   * Calculate reading streak from sessions
    */
   calculateStreak(sessions) {
     if (!sessions || sessions.length === 0) return 0
 
+    // Get unique dates
     const dates = sessions
-      .map(s => new Date(s.timestamp || s.createdAt).toDateString())
+      .map(s => {
+        const date = new Date(s.createdAt)
+        date.setHours(0, 0, 0, 0)
+        return date.getTime()
+      })
       .filter((date, index, self) => self.indexOf(date) === index)
-      .sort((a, b) => new Date(b) - new Date(a))
+      .sort((a, b) => b - a) // Most recent first
+
+    if (dates.length === 0) return 0
 
     let streak = 0
-    const today = new Date().toDateString()
-    const yesterday = new Date(Date.now() - 86400000).toDateString()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayTime = today.getTime()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayTime = yesterday.getTime()
 
     // Must have read today or yesterday to have an active streak
-    if (dates[0] !== today && dates[0] !== yesterday) return 0
+    if (dates[0] !== todayTime && dates[0] !== yesterdayTime) {
+      return 0
+    }
 
+    // Count consecutive days
     for (let i = 0; i < dates.length; i++) {
-      const expectedDate = new Date(Date.now() - (i * 86400000)).toDateString()
-      if (dates[i] === expectedDate) {
+      const expectedDate = new Date(today)
+      expectedDate.setDate(expectedDate.getDate() - i)
+      expectedDate.setHours(0, 0, 0, 0)
+      const expectedTime = expectedDate.getTime()
+
+      if (dates[i] === expectedTime) {
         streak++
       } else {
         break

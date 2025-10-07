@@ -2,14 +2,18 @@
 import ReadingSession from '../models/ReadingSession.model.js'
 import User from '../models/User.model.js'
 
+// Update saveProgress function
 export const saveProgress = async (req, res) => {
   try {
     const { userId, textId, progress, text, completed, duration, sessionType } = req.body
     
+    // Calculate words
+    const wordsRead = text ? text.split(/\s+/).filter(w => w.trim()).length : 0
+    
     const session = new ReadingSession({
       userId,
       textId: textId || `session-${Date.now()}`,
-      title: text ? text.substring(0, 50) + '...' : 'Reading Session',
+      title: text ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : 'Reading Session',
       content: text || '',
       sessionType: sessionType || 'regular',
       progress: {
@@ -17,8 +21,7 @@ export const saveProgress = async (req, res) => {
         completed: completed || false
       },
       duration: duration || 0,
-      wordsRead: text ? text.split(' ').length : 0,
-      updatedAt: Date.now()
+      wordsRead: wordsRead
     })
     
     await session.save()
@@ -45,18 +48,27 @@ export const saveProgress = async (req, res) => {
     await User.findOneAndUpdate(
       { supabaseId: userId },
       updateData,
-      { upsert: true }
+      { upsert: true, new: true }
     )
     
     // Update reading streak
-    await updateUserStreak(userId)
+    const newStreak = await updateUserStreak(userId)
     
-    res.json({ success: true, session })
+    res.json({ 
+      success: true, 
+      session,
+      streak: newStreak
+    })
   } catch (error) {
     console.error('Error saving reading progress:', error)
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message 
+    })
   }
 }
+
 
 export const getReadingHistory = async (req, res) => {
   try {

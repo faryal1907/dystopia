@@ -277,40 +277,123 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-  const saveReadingProgress = async (textId, progress) => {
-    try {
-      // Update local stats immediately for responsive UI
-      setStats(prev => ({
-        ...prev,
-        totalTextsRead: progress.completed ? prev.totalTextsRead + 1 : prev.totalTextsRead,
-        totalReadingTime: prev.totalReadingTime + (progress.duration || 0)
-      }))
+  const saveReadingProgress = async (textId, progressData) => {
+  try {
+    if (!user || !user.id) {
+      console.warn('No user logged in, progress not saved')
+      return { success: false, error: 'No user' }
+    }
 
-      // Add to local progress
-      const newSession = {
-        _id: textId,
-        title: progress.text || 'Reading Session',
-        progress: { percentage: progress.progress || 0 },
-        createdAt: new Date(),
-        sessionType: progress.sessionType || 'regular'
-      }
-      setReadingProgress(prev => [newSession, ...prev.slice(0, 9)])
+    // Prepare session data
+    const sessionData = {
+      userId: user.id,
+      textId: textId || `session-${Date.now()}`,
+      text: progressData.text || progressData.summary || 'Reading Session',
+      completed: progressData.completed || false,
+      duration: progressData.duration || 0,
+      sessionType: progressData.sessionType || 'regular',
+      progress: progressData.progress || 0
+    }
 
-      // Save to server in background (non-blocking)
-      api.post('/reading/progress', {
-        userId: user.id,
-        textId,
-        ...progress
-      }).catch(error => {
+    // Calculate words read
+    const text = sessionData.text || ''
+    const wordsRead = text.split(/\s+/).filter(w => w.trim()).length
+
+    // Update local stats IMMEDIATELY for responsive UI
+    setStats(prev => ({
+      ...prev,
+      totalTextsRead: sessionData.completed ? (prev.totalTextsRead || 0) + 1 : (prev.totalTextsRead || 0),
+      totalReadingTime: (prev.totalReadingTime || 0) + sessionData.duration,
+      lastReadingDate: new Date()
+    }))
+
+    // Add to local reading progress IMMEDIATELY
+    const newSession = {
+      _id: sessionData.textId,
+      title: sessionData.text.substring(0, 50) + (sessionData.text.length > 50 ? '...' : ''),
+      content: sessionData.text,
+      sessionType: sessionData.sessionType,
+      progress: { 
+        percentage: sessionData.progress,
+        completed: sessionData.completed 
+      },
+      duration: sessionData.duration,
+      wordsRead: wordsRead,
+      createdAt: new Date()
+    }
+    
+    setReadingProgress(prev => [newSession, ...prev.slice(0, 49)]) // Keep last 50
+
+    // Update streak locally
+    const newStreak = calculateLocalStreak([newSession, ...readingProgress])
+    setStats(prev => ({
+      ...prev,
+      readingStreak: newStreak
+    }))
+
+    // Save to server in background (non-blocking)
+    api.post('/reading/progress', sessionData)
+      .then(() => {
+        console.log('Progress synced to server')
+        // Clear cache to force fresh data on next fetch
+        localStorage.removeItem(`voxa-cache-progress-${user.id}`)
+        localStorage.removeItem(`voxa-cache-stats-${user.id}`)
+      })
+      .catch(error => {
         console.error('Error saving progress to server:', error)
+        // Still works locally!
       })
 
-      return { success: true }
-    } catch (error) {
-      console.error('Error saving progress:', error)
-      return { success: false, error }
+    return { success: true, session: newSession }
+  } catch (error) {
+    console.error('Error saving progress:', error)
+    return { success: false, error }
+  }
+}
+
+// Helper function to calculate streak locally
+const calculateLocalStreak = (sessions) => {
+  if (!sessions || sessions.length === 0) return 0
+  
+  const dates = sessions
+    .map(s => {
+      const date = new Date(s.createdAt)
+      date.setHours(0, 0, 0, 0)
+      return date.getTime()
+    })
+    .filter((date, index, self) => self.indexOf(date) === index)
+    .sort((a, b) => b - a)
+
+  if (dates.length === 0) return 0
+
+  let streak = 0
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayTime = today.getTime()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayTime = yesterday.getTime()
+
+  if (dates[0] !== todayTime && dates[0] !== yesterdayTime) {
+    return 0
+  }
+
+  for (let i = 0; i < dates.length; i++) {
+    const expectedDate = new Date(today)
+    expectedDate.setDate(expectedDate.getDate() - i)
+    expectedDate.setHours(0, 0, 0, 0)
+    const expectedTime = expectedDate.getTime()
+
+    if (dates[i] === expectedTime) {
+      streak++
+    } else {
+      break
     }
   }
+
+  return streak
+}
+
 
   const addAchievement = async (achievement) => {
     try {

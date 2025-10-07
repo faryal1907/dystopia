@@ -1,4 +1,3 @@
-// server/models/ReadingSession.model.js
 import mongoose from 'mongoose'
 
 const readingSessionSchema = new mongoose.Schema({
@@ -7,33 +6,24 @@ const readingSessionSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  textId: String,
-  title: String,
-  content: {
+  textId: {
     type: String,
     required: true
   },
+  title: {
+    type: String,
+    default: 'Reading Session'
+  },
+  content: {
+    type: String,
+    default: ''
+  },
   sessionType: {
     type: String,
-    enum: ['text-to-speech', 'translation', 'focus-mode', 'regular'],
+    enum: ['text-to-speech', 'translation', 'focus-mode', 'summarization', 'regular'],
     default: 'regular'
   },
-  settings: {
-    fontSize: String,
-    readingSpeed: Number,
-    voice: String,
-    language: String,
-    focusMode: Boolean
-  },
   progress: {
-    startPosition: {
-      type: Number,
-      default: 0
-    },
-    endPosition: {
-      type: Number,
-      default: 0
-    },
     percentage: {
       type: Number,
       default: 0,
@@ -55,7 +45,8 @@ const readingSessionSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   },
   updatedAt: {
     type: Date,
@@ -63,8 +54,17 @@ const readingSessionSchema = new mongoose.Schema({
   }
 })
 
+// Index for faster queries
+readingSessionSchema.index({ userId: 1, createdAt: -1 })
+
 readingSessionSchema.pre('save', function(next) {
   this.updatedAt = Date.now()
+  
+  // Calculate wordsRead if not set
+  if (!this.wordsRead && this.content) {
+    this.wordsRead = this.content.split(/\s+/).filter(w => w.trim()).length
+  }
+  
   next()
 })
 
