@@ -1,9 +1,12 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap } from 'lucide-react'
+import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
+import { analyticsService } from '../services/analyticsService'
+import InsightCard from '../components/InsightCard'
+import WeeklyChart from '../components/WeeklyChart'
 
 // Helper function defined at the top to avoid initialization issues
 const formatTimeAgo = (date) => {
@@ -29,6 +32,11 @@ const Dashboard = () => {
   const [greeting, setGreeting] = useState('')
   const [weeklyGoal, setWeeklyGoal] = useState({ current: 0, target: 7 })
   const [lastFetch, setLastFetch] = useState(0)
+
+  // NEW: AI-powered analytics state
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [insights, setInsights] = useState([])
+  const [weeklyActivity, setWeeklyActivity] = useState([])
 
   // Predefined achievements that users can earn
   const predefinedAchievements = [
@@ -86,6 +94,23 @@ const Dashboard = () => {
     }
   }, [user])
 
+  // NEW: Calculate analytics when readingProgress changes
+  useEffect(() => {
+    if (readingProgress && readingProgress.length > 0) {
+      // Calculate stats
+      const calculatedStats = analyticsService.calculateStats(readingProgress)
+      setAnalyticsData(calculatedStats)
+
+      // Generate AI insights
+      const generatedInsights = analyticsService.generateInsights(calculatedStats, readingProgress)
+      setInsights(generatedInsights)
+
+      // Get weekly activity data
+      const weekData = analyticsService.getWeeklyActivity(readingProgress)
+      setWeeklyActivity(weekData)
+    }
+  }, [readingProgress])
+
   // Calculate weekly goal progress
   useEffect(() => {
     if (readingProgress && readingProgress.length > 0) {
@@ -136,6 +161,13 @@ const Dashboard = () => {
       href: '/focus-mode',
       icon: Focus,
       color: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Summarize',
+      description: 'AI-powered text summarization',
+      href: '/summarize',
+      icon: Zap,
+      color: 'from-pink-500 to-rose-500'
     }
   ]
 
@@ -241,13 +273,41 @@ const Dashboard = () => {
           })}
         </div>
 
+        {/* NEW: AI Insights Section */}
+        {insights.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
+              <Brain className="h-5 w-5 mr-2" />
+              AI-Powered Insights
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {insights.map((insight, index) => (
+                <InsightCard key={insight.type} insight={insight} index={index} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Weekly Activity Chart */}
+        {weeklyActivity.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+              <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2" />
+                Weekly Activity
+              </h2>
+              <WeeklyChart data={weeklyActivity} />
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
             <Zap className="h-5 w-5 mr-2" />
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
@@ -260,10 +320,10 @@ const Dashboard = () => {
                       <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2 dyslexia-text">
                         {action.title}
                       </h3>
-                      <p className="text-[var(--text-secondary)] dyslexia-text mb-4">
+                      <p className="text-[var(--text-secondary)] dyslexia-text mb-4 text-sm">
                         {action.description}
                       </p>
-                      <div className="flex items-center text-primary-600 font-medium dyslexia-text">
+                      <div className="flex items-center text-primary-600 font-medium dyslexia-text text-sm">
                         Start now
                         <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                       </div>
