@@ -10,13 +10,14 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.0",
+    "framer-motion": "^10.16.0",
+    "gsap": "^3.12.2",
+    "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
-    "framer-motion": "^10.16.0",
-    "gsap": "^3.12.2",
-    "axios": "^1.6.0",
-    "lucide-react": "^0.292.0"
+    "sentiment": "^5.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

@@ -1,9 +1,12 @@
 // client/src/pages/TextToSpeech.jsx
 import React, { useState, useRef, useEffect } from 'react'
-import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader, Heart, X, Zap, FileText } from 'lucide-react'
 import { ttsService } from '../utils/textToSpeech.js'
 import { useUser } from '../context/UserContext.jsx'
 import WordTooltip from '../components/WordTooltip'
+import { sentimentService } from '../services/sentimentService';
+import SentimentDisplay from '../components/SentimentDisplay';
 
 const TextToSpeech = () => {
   const { saveReadingProgress } = useUser()
@@ -35,6 +38,12 @@ const TextToSpeech = () => {
   const textareaRef = useRef(null)
   const displayRef = useRef(null)
 
+  // State for sentiment
+  const [sentimentAnalysis, setSentimentAnalysis] = useState(null);
+  const [showSentiment, setShowSentiment] = useState(false);
+
+  const navigate = useNavigate()
+
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = ttsService.getVoices()
@@ -55,6 +64,34 @@ const TextToSpeech = () => {
     
     return () => intervals.forEach(clearTimeout)
   }, [selectedVoice])
+
+  // After your existing state declarations, add:
+  useEffect(() => {
+    // Check if text was sent from another page
+    const incomingText = localStorage.getItem('tts-text')
+    if (incomingText) {
+      setText(incomingText)
+      setReadMode(false)
+      localStorage.removeItem('tts-text') // Clear after use
+      setSuccess('Text loaded from Summarize! Ready to listen.')
+      setTimeout(() => setSuccess(''), 3000)
+    }
+  }, [])
+
+
+  // Add function to analyze sentiment
+  const handleAnalyzeSentiment = () => {
+    if (!text.trim()) {
+      setError('Please enter some text to analyze');
+      return;
+    }
+
+    const analysis = sentimentService.getSummary(text);
+    setSentimentAnalysis(analysis);
+    setShowSentiment(true);
+    setSuccess('Sentiment analysis complete!');
+    setTimeout(() => setSuccess(''), 3000);
+  };
 
   // Word click handler for dictionary
   const handleWordClick = (event) => {
@@ -196,6 +233,8 @@ const TextToSpeech = () => {
     setError('')
     setSuccess('')
     setReadMode(false)
+    setShowSentiment(false)
+    setSentimentAnalysis(null)
     setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: 0, progress: 0 })
   }
 
@@ -326,6 +365,27 @@ const TextToSpeech = () => {
                     </button>
                   )}
                   <button
+                    onClick={handleAnalyzeSentiment}
+                    disabled={!text.trim()}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Analyze sentiment"
+                  >
+                    <Heart className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('summarize-text', text)
+                      navigate('/summarize')
+                    }}
+                    disabled={!text.trim()}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Summarize this text"
+                  >
+                    <Zap className="h-4 w-4" />
+                  </button>
+
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
                     title="Upload file"
@@ -348,6 +408,21 @@ const TextToSpeech = () => {
                   >
                     <RotateCcw className="h-4 w-4" />
                   </button>
+
+                  <button
+                    onClick={() => {
+                      if (text.trim()) {
+                        localStorage.setItem('summarize-text', text)
+                        navigate('/summarize')
+                      }
+                    }}
+                    disabled={!text.trim()}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Summarize this text"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </button>
+
                 </div>
               </div>
               
@@ -450,6 +525,24 @@ const TextToSpeech = () => {
               )}
             </div>
 
+            {/* Sentiment Analysis Display */}
+            {showSentiment && sentimentAnalysis && (
+              <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
+                    Sentiment Analysis
+                  </h3>
+                  <button
+                    onClick={() => setShowSentiment(false)}
+                    className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <SentimentDisplay analysis={sentimentAnalysis} />
+              </div>
+            )}
+
             {/* Sample Texts */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-4">
@@ -478,7 +571,7 @@ const TextToSpeech = () => {
             </div>
           </div>
 
-          {/* Controls - Keep the same as before */}
+          {/* Controls */}
           <div className="space-y-6">
             {/* Playback Controls */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">

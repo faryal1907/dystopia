@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes.js'
 import readingRoutes from './routes/readingRoutes.js'
 import translationRoutes from './routes/translationRoutes.js'
 import dictionaryRoutes from './routes/dictionaryRoutes.js';
+import summarizationRoutes from './routes/summarizationRoutes.js';
 
 dotenv.config()
 
@@ -16,6 +17,7 @@ const app = express()
 const PORT = process.env.PORT || 5000
 
 // Connect to MongoDB
+
 connectDB()
 
 // Middleware
@@ -33,7 +35,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
-app.use('/api/dictionary', dictionaryRoutes);
 
 // FIXED: More lenient rate limiting to prevent 429 errors
 const generalLimiter = rateLimit({
@@ -69,10 +70,11 @@ const translationLimiter = rateLimit({
   }
 })
 
-app.use('/api/', generalLimiter)
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+
 
 // Request logging middleware (development only)
 if (process.env.NODE_ENV === 'development') {
@@ -87,6 +89,13 @@ app.use('/api/users', frequentLimiter, userRoutes)
 app.use('/api/reading', frequentLimiter, readingRoutes)
 // Translation gets its own rate limiter for auto-translate functionality
 app.use('/api/translation', translationLimiter, translationRoutes)
+
+app.use('/api/summarization', summarizationRoutes);
+
+app.use('/api/dictionary', dictionaryRoutes);
+
+app.use('/api/', generalLimiter)
+
 
 // Health check endpoint (no rate limit)
 app.get('/api/health', (req, res) => {

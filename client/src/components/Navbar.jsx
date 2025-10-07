@@ -2,19 +2,8 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  BookOpen,
-  Menu,
-  X,
-  Sun,
-  Moon,
-  Settings,
-  LogOut,
-  User,
-  Volume2,
-  Languages,
-  Focus
-} from 'lucide-react'
+import { BookOpen, Menu, X, Sun, Moon, Settings, LogOut, User, Volume2, Languages, Focus, FileText } from 'lucide-react'
+
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 
@@ -26,12 +15,13 @@ const Navbar = () => {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: User },
-    { name: 'Text to Speech', href: '/text-to-speech', icon: Volume2 },
-    { name: 'Translation', href: '/translation', icon: Languages },
-    { name: 'Focus Mode', href: '/focus-mode', icon: Focus },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ]
+  { name: 'Dashboard', href: '/dashboard', icon: User },
+  { name: 'Text to Speech', href: '/text-to-speech', icon: Volume2 },
+  { name: 'Translation', href: '/translation', icon: Languages },
+  { name: 'Focus Mode', href: '/focus-mode', icon: Focus },
+  { name: 'Summarize', href: '/summarize', icon: FileText }, 
+  { name: 'Settings', href: '/settings', icon: Settings },
+]
 
   const handleSignOut = async () => {
     await signOut()
