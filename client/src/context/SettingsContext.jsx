@@ -2,13 +2,40 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 
-const SettingsContext = createContext({})
+const SettingsContext = createContext(null)
 
 export const useSettings = () => {
   const context = useContext(SettingsContext)
+  
+  // Return safe defaults if context is not available
   if (!context) {
-    throw new Error('useSettings must be used within a SettingsProvider')
+    return {
+      settings: {
+        fontSize: 'medium',
+        lineHeight: 'normal',
+        letterSpacing: 'normal',
+        fontFamily: 'lexend',
+        backgroundColor: 'default',
+        textColor: 'default',
+        highlightColor: 'blue',
+        backgroundOverlay: false,
+        dyslexiaFont: true,
+        wordSpacing: 'normal',
+        paragraphSpacing: 'normal',
+        readingSpeed: 1.0,
+        autoPlay: false,
+        highlightReading: true,
+        showProgress: true,
+        preferredTranslationLanguage: 'es',
+        autoTranslate: false,
+        language: 'en'
+      },
+      saveSettings: () => console.warn('SettingsProvider not found'),
+      resetSettings: () => console.warn('SettingsProvider not found'),
+      applySettings: () => console.warn('SettingsProvider not found')
+    }
   }
+  
   return context
 }
 
@@ -38,6 +65,10 @@ export const SettingsProvider = ({ children }) => {
     highlightReading: true,
     showProgress: true,
 
+    // Translation
+    preferredTranslationLanguage: 'es',
+    autoTranslate: false,
+
     // Language
     language: 'en'
   })
@@ -66,6 +97,12 @@ export const SettingsProvider = ({ children }) => {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
     localStorage.setItem('voxa-settings', JSON.stringify(updatedSettings))
+    
+    // Emit custom event so other components can react
+    window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+      detail: updatedSettings 
+    }))
+    
     return updatedSettings
   }
 
@@ -150,11 +187,19 @@ export const SettingsProvider = ({ children }) => {
       autoPlay: false,
       highlightReading: true,
       showProgress: true,
+      preferredTranslationLanguage: 'es',
+      autoTranslate: false,
       language: 'en'
     }
 
     setSettings(defaultSettings)
     localStorage.setItem('voxa-settings', JSON.stringify(defaultSettings))
+    
+    // Emit custom event
+    window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+      detail: defaultSettings 
+    }))
+    
     return defaultSettings
   }
 

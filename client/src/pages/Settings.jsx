@@ -1,7 +1,19 @@
 // client/src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Settings as SettingsIcon, User, Eye, Volume2, Languages, Palette, Save, RotateCcw, Type, Sliders, Monitor, Zap } from 'lucide-react'
+import { 
+  Settings as SettingsIcon, 
+  User, 
+  Eye, 
+  Volume2, 
+  Languages, 
+  Palette, 
+  Save, 
+  RotateCcw, 
+  Type, 
+  Zap,
+  Globe
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -12,6 +24,25 @@ const Settings = () => {
   const { isDark, toggleTheme, highContrast, toggleHighContrast } = useTheme()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Supported languages for translation
+  const supportedLanguages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'nl', name: 'Dutch' },
+    { code: 'pl', name: 'Polish' },
+    { code: 'tr', name: 'Turkish' }
+  ]
 
   const [formSettings, setFormSettings] = useState({
     // Typography
@@ -43,7 +74,7 @@ const Settings = () => {
 
     // Translation
     preferredTranslationLanguage: 'es',
-    autoTranslate: true,
+    autoTranslate: false,
 
     // Language
     language: 'en'
@@ -150,7 +181,9 @@ const Settings = () => {
       const result = await updateSettings(formSettings)
       if (result.success) {
         setSaved(true)
-        setTimeout(() => setSaved(false), 2000)
+        // Also save to localStorage for immediate access
+        localStorage.setItem('voxa-settings', JSON.stringify(formSettings))
+        setTimeout(() => setSaved(false), 3000)
       }
     } catch (error) {
       console.error('Error saving settings:', error)
@@ -179,7 +212,7 @@ const Settings = () => {
       focusWordByWord: false,
       focusPauseTime: 500,
       preferredTranslationLanguage: 'es',
-      autoTranslate: true,
+      autoTranslate: false,
       language: 'en'
     }
     setFormSettings(defaultSettings)
@@ -349,14 +382,14 @@ const Settings = () => {
     },
     {
       title: 'Translation',
-      icon: Languages,
+      icon: Globe,
       settings: [
         {
           key: 'preferredTranslationLanguage',
           label: 'Preferred Translation Language',
           type: 'select',
-          description: 'All text will be automatically translated to this language',
-          options: translationService.getSupportedLanguages().map(lang => ({
+          description: 'Your preferred language for translations',
+          options: supportedLanguages.map(lang => ({
             value: lang.code,
             label: lang.name
           }))
@@ -392,11 +425,31 @@ const Settings = () => {
           description: 'Optimizes text display for dyslexic readers with enhanced spacing'
         }
       ]
+    },
+    {
+      title: 'Interface Language',
+      icon: Languages,
+      settings: [
+        {
+          key: 'language',
+          label: 'Interface Language',
+          type: 'select',
+          description: 'Language for menus and interface elements',
+          options: supportedLanguages.map(lang => ({
+            value: lang.code,
+            label: lang.name
+          }))
+        }
+      ]
     }
   ]
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
+    <div className={`min-h-screen py-8 transition-colors duration-300 ${
+      isDark 
+        ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50'
+    }`}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
@@ -404,13 +457,21 @@ const Settings = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div className="inline-flex p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl mb-4">
-            <SettingsIcon className="h-8 w-8 text-white" />
+          <div className={`inline-flex p-4 rounded-2xl mb-4 shadow-lg ${
+            isDark 
+              ? 'bg-gradient-to-br from-orange-600 to-red-600' 
+              : 'bg-gradient-to-br from-orange-500 to-red-500'
+          }`}>
+            <SettingsIcon className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] dyslexia-text mb-2">
+          <h1 className={`text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r ${
+            isDark 
+              ? 'from-orange-400 to-red-300' 
+              : 'from-orange-600 to-red-600'
+          } bg-clip-text text-transparent`}>
             Settings
           </h1>
-          <p className="text-[var(--text-secondary)] dyslexia-text">
+          <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
             Customize your reading experience and accessibility preferences
           </p>
         </motion.div>
@@ -420,27 +481,35 @@ const Settings = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] mb-8"
+          className={`rounded-xl p-6 border mb-8 shadow-xl ${
+            isDark 
+              ? 'bg-gray-800/50 border-gray-700 backdrop-blur-lg' 
+              : 'bg-white/80 border-gray-200 backdrop-blur-lg'
+          }`}
         >
-          <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
+          <h2 className={`text-xl font-semibold mb-6 flex items-center ${
+            isDark ? 'text-white' : 'text-gray-900'
+          }`}>
             <Palette className="h-5 w-5 mr-2" />
             Appearance
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg">
+            <div className={`flex items-center justify-between p-4 rounded-lg ${
+              isDark ? 'bg-gray-700/50' : 'bg-gray-50'
+            }`}>
               <div>
-                <div className="font-medium text-[var(--text-primary)] dyslexia-text">
+                <div className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   Dark Mode
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
+                <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   Switch between light and dark themes
                 </div>
               </div>
               <button
                 onClick={toggleTheme}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isDark ? 'bg-primary-600' : 'bg-gray-200'
+                  isDark ? 'bg-orange-600' : 'bg-gray-200'
                 }`}
               >
                 <span
@@ -451,19 +520,21 @@ const Settings = () => {
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg">
+            <div className={`flex items-center justify-between p-4 rounded-lg ${
+              isDark ? 'bg-gray-700/50' : 'bg-gray-50'
+            }`}>
               <div>
-                <div className="font-medium text-[var(--text-primary)] dyslexia-text">
+                <div className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   High Contrast
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
+                <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   Increase contrast for better readability
                 </div>
               </div>
               <button
                 onClick={toggleHighContrast}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  highContrast ? 'bg-primary-600' : 'bg-gray-200'
+                  highContrast ? 'bg-orange-600' : 'bg-gray-200'
                 }`}
               >
                 <span
@@ -485,34 +556,48 @@ const Settings = () => {
                 key={section.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + sectionIndex * 0.1 }}
-                className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]"
+                transition={{ delay: 0.2 + sectionIndex * 0.05 }}
+                className={`rounded-xl p-6 border shadow-xl ${
+                  isDark 
+                    ? 'bg-gray-800/50 border-gray-700 backdrop-blur-lg' 
+                    : 'bg-white/80 border-gray-200 backdrop-blur-lg'
+                }`}
               >
-                <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
+                <h2 className={`text-xl font-semibold mb-6 flex items-center ${
+                  isDark ? 'text-white' : 'text-gray-900'
+                }`}>
                   <Icon className="h-5 w-5 mr-2" />
                   {section.title}
                 </h2>
 
                 <div className="space-y-6">
                   {section.settings.map((setting) => (
-                    <div key={setting.key} className="flex items-center justify-between">
-                      <div className="flex-1 mr-6">
-                        <label className="block font-medium text-[var(--text-primary)] dyslexia-text mb-1">
+                    <div key={setting.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex-1">
+                        <label className={`block font-medium mb-1 ${
+                          isDark ? 'text-white' : 'text-gray-900'
+                        }`}>
                           {setting.label}
                         </label>
                         {setting.description && (
-                          <p className="text-sm text-[var(--text-secondary)] dyslexia-text">
+                          <p className={`text-sm ${
+                            isDark ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                             {setting.description}
                           </p>
                         )}
                       </div>
 
-                      <div className="min-w-[200px]">
+                      <div className="sm:min-w-[200px]">
                         {setting.type === 'select' && (
                           <select
                             value={formSettings[setting.key]}
                             onChange={(e) => handleInputChange(setting.key, e.target.value)}
-                            className="w-full p-3 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className={`w-full p-3 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                              isDark 
+                                ? 'bg-gray-700 border-gray-600 text-white' 
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
                           >
                             {setting.options.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -531,23 +616,27 @@ const Settings = () => {
                               step={setting.step}
                               value={formSettings[setting.key]}
                               onChange={(e) => handleInputChange(setting.key, parseFloat(e.target.value))}
-                              className="w-full"
+                              className="w-full accent-orange-600"
                             />
-                            <div className="text-center text-sm text-[var(--text-secondary)] dyslexia-text mt-1">
+                            <div className={`text-center text-sm mt-1 ${
+                              isDark ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                               {formSettings[setting.key]}{setting.suffix || ''}
                             </div>
                           </div>
                         )}
 
                         {setting.type === 'checkbox' && (
-                          <label className="flex items-center">
+                          <label className="flex items-center cursor-pointer">
                             <input
                               type="checkbox"
                               checked={formSettings[setting.key]}
                               onChange={(e) => handleInputChange(setting.key, e.target.checked)}
-                              className="w-4 h-4 text-primary-600 bg-[var(--bg-primary)] border-[var(--border-color)] rounded focus:ring-primary-500 focus:ring-2"
+                              className="w-5 h-5 text-orange-600 bg-transparent border-gray-400 rounded focus:ring-orange-500 focus:ring-2"
                             />
-                            <span className="ml-2 text-[var(--text-primary)] dyslexia-text">
+                            <span className={`ml-3 ${
+                              isDark ? 'text-white' : 'text-gray-900'
+                            }`}>
                               {formSettings[setting.key] ? 'Enabled' : 'Disabled'}
                             </span>
                           </label>
@@ -566,11 +655,15 @@ const Settings = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="flex items-center justify-center space-x-4 mt-8"
+          className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-8"
         >
           <button
             onClick={handleReset}
-            className="inline-flex items-center px-6 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-primary)] transition-colors dyslexia-text"
+            className={`inline-flex items-center px-6 py-3 border rounded-xl transition-all shadow-md hover:shadow-lg w-full sm:w-auto justify-center ${
+              isDark 
+                ? 'bg-gray-700 text-white border-gray-600 hover:bg-gray-600' 
+                : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+            }`}
           >
             <RotateCcw className="h-5 w-5 mr-2" />
             Reset to Defaults
@@ -579,16 +672,34 @@ const Settings = () => {
           <button
             onClick={handleSave}
             disabled={loading}
-            className={`inline-flex items-center px-6 py-3 rounded-lg transition-colors dyslexia-text ${
+            className={`inline-flex items-center px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center ${
               saved
                 ? 'bg-green-600 text-white'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                : isDark
+                ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white'
+                : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white'
+            }`}
           >
             <Save className="h-5 w-5 mr-2" />
-            {loading ? 'Saving...' : saved ? 'Saved!' : 'Save Settings'}
+            {loading ? 'Saving...' : saved ? 'Saved Successfully!' : 'Save Settings'}
           </button>
         </motion.div>
+
+        {/* Info Message */}
+        {saved && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`mt-6 p-4 rounded-xl border text-center ${
+              isDark 
+                ? 'bg-green-900/30 border-green-700 text-green-300' 
+                : 'bg-green-50 border-green-200 text-green-700'
+            }`}
+          >
+            ✨ Your settings have been saved and will apply across all pages!
+          </motion.div>
+        )}
       </div>
     </div>
   )

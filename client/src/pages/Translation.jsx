@@ -16,31 +16,35 @@ import {
   Globe
 } from 'lucide-react';
 import { translationService } from '../services/translationService.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
+
+// Safe settings hook with fallback
+const useSettingsSafe = () => {
+  try {
+    const stored = localStorage.getItem('voxa-settings');
+    return stored ? JSON.parse(stored) : { preferredTranslationLanguage: 'es', autoTranslate: false };
+  } catch {
+    return { preferredTranslationLanguage: 'es', autoTranslate: false };
+  }
+};
 
 const Translation = () => {
+  // Use ThemeContext for dark mode (synced with navbar)
+  const { isDark } = useTheme();
+  
+  // Get settings safely
+  const storedSettings = useSettingsSafe();
+
   const [sourceText, setSourceText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [detectedLanguage, setDetectedLanguage] = useState('');
-  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [targetLanguage, setTargetLanguage] = useState(storedSettings.preferredTranslationLanguage || 'es');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [autoTranslate, setAutoTranslate] = useState(false);
+  const [autoTranslate, setAutoTranslate] = useState(storedSettings.autoTranslate || false);
   const [languages, setLanguages] = useState([]);
   const [serverStatus, setServerStatus] = useState({ status: 'checking', hasApiKey: false });
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   useEffect(() => {
     const loadLanguages = async () => {
@@ -55,6 +59,22 @@ const Translation = () => {
 
     loadLanguages();
     checkServer();
+  }, []);
+
+  // Listen for settings updates
+  useEffect(() => {
+    const handleSettingsUpdate = (event) => {
+      const newSettings = event.detail;
+      if (newSettings.preferredTranslationLanguage) {
+        setTargetLanguage(newSettings.preferredTranslationLanguage);
+      }
+      if (newSettings.autoTranslate !== undefined) {
+        setAutoTranslate(newSettings.autoTranslate);
+      }
+    };
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
   }, []);
 
   useEffect(() => {
@@ -144,7 +164,7 @@ const Translation = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode 
+      isDark 
         ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50'
     } py-8 px-4`}>
@@ -155,38 +175,24 @@ const Translation = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex-1" />
-            <div className={`inline-flex p-4 rounded-2xl mb-4 shadow-lg ${
-              isDarkMode 
+          <div className="flex justify-center items-center mb-6">
+            <div className={`inline-flex p-4 rounded-2xl shadow-lg ${
+              isDark 
                 ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600' 
                 : 'bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500'
             }`}>
               <Languages className="h-10 w-10 text-white" />
             </div>
-            <div className="flex-1 flex justify-end">
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`p-3 rounded-xl transition-all shadow-md hover:shadow-lg ${
-                  isDarkMode 
-                    ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              >
-                {isDarkMode ? '☀️' : '🌙'}
-              </button>
-            </div>
           </div>
           
           <h1 className={`text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r ${
-            isDarkMode 
+            isDark 
               ? 'from-blue-400 to-cyan-300' 
               : 'from-blue-600 to-cyan-600'
           } bg-clip-text text-transparent`}>
             Free AI Translation
           </h1>
-          <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
             Powered by MyMemory • 50,000 characters free daily
           </p>
         </motion.div>
@@ -200,17 +206,17 @@ const Translation = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ delay: 0.1 }}
               className={`rounded-2xl p-4 mb-6 shadow-xl ${
-                isDarkMode 
+                isDark 
                   ? 'bg-green-900/30 border border-green-700' 
                   : 'bg-green-50 border border-green-200'
               }`}
             >
               <div className="flex items-center space-x-3">
                 <CheckCircle2 className={`h-5 w-5 flex-shrink-0 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDark ? 'text-green-400' : 'text-green-600'
                 }`} />
                 <p className={`font-medium ${
-                  isDarkMode ? 'text-green-300' : 'text-green-700'
+                  isDark ? 'text-green-300' : 'text-green-700'
                 }`}>
                   ✨ Translation service ready • {serverStatus.freeLimit || '50,000 chars/day'}
                 </p>
@@ -224,28 +230,28 @@ const Translation = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className={`rounded-2xl p-6 mb-6 shadow-xl ${
-                isDarkMode 
+                isDark 
                   ? 'bg-red-900/30 border border-red-700' 
                   : 'bg-red-50 border border-red-200'
               }`}
             >
               <div className="flex items-start space-x-3">
                 <AlertCircle className={`h-6 w-6 flex-shrink-0 mt-0.5 ${
-                  isDarkMode ? 'text-red-400' : 'text-red-600'
+                  isDark ? 'text-red-400' : 'text-red-600'
                 }`} />
                 <div className="flex-1">
                   <h3 className={`text-lg font-semibold mb-2 ${
-                    isDarkMode ? 'text-red-300' : 'text-red-900'
+                    isDark ? 'text-red-300' : 'text-red-900'
                   }`}>
                     Server Connection Error
                   </h3>
                   <p className={`leading-relaxed mb-3 ${
-                    isDarkMode ? 'text-red-200' : 'text-red-700'
+                    isDark ? 'text-red-200' : 'text-red-700'
                   }`}>
                     Cannot connect to the backend server. Please make sure the server is running.
                   </p>
                   <p className={`text-sm font-mono p-2 rounded ${
-                    isDarkMode ? 'bg-red-950 text-red-300' : 'bg-red-100 text-red-600'
+                    isDark ? 'bg-red-950 text-red-300' : 'bg-red-100 text-red-600'
                   }`}>
                     Run: npm run dev (in server folder)
                   </p>
@@ -261,23 +267,23 @@ const Translation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className={`backdrop-blur-lg rounded-2xl p-6 mb-6 border shadow-xl ${
-            isDarkMode 
+            isDark 
               ? 'bg-gray-800/50 border-gray-700' 
               : 'bg-white/80 border-gray-200'
           }`}
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h3 className={`text-lg font-semibold flex items-center ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
+              isDark ? 'text-white' : 'text-gray-900'
             }`}>
               <Globe className={`h-5 w-5 mr-2 ${
-                isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                isDark ? 'text-blue-400' : 'text-blue-600'
               }`} />
               Translation Settings
             </h3>
             <label className="flex items-center space-x-3 cursor-pointer group">
               <span className={`text-sm font-medium ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                isDark ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 <Zap className="h-4 w-4 inline mr-1" />
                 Auto-Translate
@@ -290,7 +296,7 @@ const Translation = () => {
                   className="sr-only peer"
                 />
                 <div className={`w-11 h-6 rounded-full peer transition-all peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                  isDarkMode 
+                  isDark 
                     ? 'bg-gray-600 peer-checked:bg-blue-500 after:border-gray-500' 
                     : 'bg-gray-200 peer-checked:bg-blue-600 after:border-gray-300'
                 } peer-focus:ring-4 peer-focus:ring-blue-300`}></div>
@@ -301,7 +307,7 @@ const Translation = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                isDark ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Target Language
               </label>
@@ -309,7 +315,7 @@ const Translation = () => {
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
                 className={`w-full p-3 border rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isDarkMode 
+                  isDark 
                     ? 'bg-gray-700 border-gray-600 text-white' 
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
@@ -327,20 +333,20 @@ const Translation = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className={`flex items-center p-4 rounded-xl border ${
-                  isDarkMode 
+                  isDark 
                     ? 'bg-blue-900/30 border-blue-700' 
                     : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200'
                 }`}
               >
                 <Info className={`h-5 w-5 mr-3 flex-shrink-0 ${
-                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  isDark ? 'text-blue-400' : 'text-blue-600'
                 }`} />
                 <div>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                     Detected Language
                   </p>
                   <p className={`text-lg font-semibold ${
-                    isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                    isDark ? 'text-blue-300' : 'text-blue-700'
                   }`}>
                     {detectedLanguage}
                   </p>
@@ -358,14 +364,14 @@ const Translation = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
             className={`backdrop-blur-lg rounded-2xl p-6 border shadow-xl ${
-              isDarkMode 
+              isDark 
                 ? 'bg-gray-800/50 border-gray-700' 
                 : 'bg-white/80 border-gray-200'
             }`}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
+                isDark ? 'text-white' : 'text-gray-900'
               }`}>
                 Source Text
               </h3>
@@ -374,7 +380,7 @@ const Translation = () => {
                   onClick={() => handleSpeak(sourceText, 'en')}
                   disabled={!sourceText.trim()}
                   className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isDarkMode 
+                    isDark 
                       ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
@@ -386,7 +392,7 @@ const Translation = () => {
                   onClick={() => handleCopy(sourceText)}
                   disabled={!sourceText.trim()}
                   className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isDarkMode 
+                    isDark 
                       ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
@@ -406,7 +412,7 @@ const Translation = () => {
               onChange={(e) => setSourceText(e.target.value)}
               placeholder="Type or paste your text here..."
               className={`w-full h-72 p-4 border rounded-xl resize-none transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                isDarkMode 
+                isDark 
                   ? 'bg-gray-900/50 border-gray-600 text-white placeholder-gray-500' 
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
               }`}
@@ -418,7 +424,7 @@ const Translation = () => {
             />
 
             <div className="flex items-center justify-between mt-4">
-              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {sourceText.length} characters
               </span>
               {sourceText.trim().length > 0 && !autoTranslate && (
@@ -426,7 +432,7 @@ const Translation = () => {
                   onClick={handleTranslate}
                   disabled={loading}
                   className={`px-6 py-2.5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center space-x-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isDarkMode 
+                    isDark 
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' 
                       : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white'
                   }`}
@@ -453,14 +459,14 @@ const Translation = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
             className={`backdrop-blur-lg rounded-2xl p-6 border shadow-xl ${
-              isDarkMode 
+              isDark 
                 ? 'bg-gray-800/50 border-gray-700' 
                 : 'bg-white/80 border-gray-200'
             }`}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
+                isDark ? 'text-white' : 'text-gray-900'
               }`}>
                 Translation ({translationService.getLanguageName(targetLanguage)})
               </h3>
@@ -469,7 +475,7 @@ const Translation = () => {
                   <button
                     onClick={handleSwapLanguages}
                     className={`p-2 rounded-lg transition-all ${
-                      isDarkMode 
+                      isDark 
                         ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
                         : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                     }`}
@@ -482,7 +488,7 @@ const Translation = () => {
                   onClick={() => handleSpeak(translatedText, targetLanguage)}
                   disabled={!translatedText.trim()}
                   className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isDarkMode 
+                    isDark 
                       ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
@@ -494,7 +500,7 @@ const Translation = () => {
                   onClick={() => handleCopy(translatedText)}
                   disabled={!translatedText.trim()}
                   className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isDarkMode 
+                    isDark 
                       ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
@@ -507,7 +513,7 @@ const Translation = () => {
 
             <div
               className={`w-full h-72 p-4 border rounded-xl overflow-y-auto transition-all ${
-                isDarkMode 
+                isDark 
                   ? 'bg-gradient-to-br from-gray-900 to-blue-900/30 border-gray-600 text-white' 
                   : 'bg-gradient-to-br from-gray-50 to-blue-50 border-gray-300 text-gray-900'
               }`}
@@ -519,10 +525,10 @@ const Translation = () => {
             >
               {loading ? (
                 <div className={`flex items-center justify-center h-full ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  isDark ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <Loader2 className={`h-8 w-8 animate-spin mr-3 ${
-                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    isDark ? 'text-blue-400' : 'text-blue-600'
                   }`} />
                   <span className="text-lg">Translating...</span>
                 </div>
@@ -538,7 +544,7 @@ const Translation = () => {
                 <p className="whitespace-pre-wrap">{translatedText}</p>
               ) : (
                 <div className={`flex items-center justify-center h-full ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-gray-400'
                 }`}>
                   <div className="text-center">
                     <Languages className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -549,7 +555,7 @@ const Translation = () => {
             </div>
 
             {translatedText && (
-              <div className={`mt-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`mt-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {translatedText.length} characters • MyMemory Free Translation
               </div>
             )}
@@ -562,13 +568,13 @@ const Translation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className={`backdrop-blur-lg rounded-2xl p-6 border shadow-xl ${
-            isDarkMode 
+            isDark 
               ? 'bg-gray-800/50 border-gray-700' 
               : 'bg-white/80 border-gray-200'
           }`}
         >
           <h3 className={`text-lg font-semibold mb-4 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
+            isDark ? 'text-white' : 'text-gray-900'
           }`}>
             Try Sample Texts
           </h3>
@@ -580,7 +586,7 @@ const Translation = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`p-4 text-left rounded-xl transition-all border ${
-                  isDarkMode 
+                  isDark 
                     ? 'bg-gray-700/50 hover:bg-gray-600/50 border-gray-600 hover:border-blue-500 text-gray-200' 
                     : 'bg-gradient-to-br from-gray-50 to-blue-50 hover:from-blue-50 hover:to-cyan-50 border-gray-200 hover:border-blue-300 text-gray-800'
                 } hover:shadow-md`}
@@ -597,45 +603,45 @@ const Translation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className={`mt-6 rounded-2xl p-6 border shadow-lg ${
-            isDarkMode 
+            isDark 
               ? 'bg-gradient-to-br from-blue-900/30 to-indigo-900/30 border-blue-700' 
               : 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200'
           }`}
         >
           <h3 className={`text-lg font-semibold mb-3 flex items-center ${
-            isDarkMode ? 'text-blue-300' : 'text-blue-900'
+            isDark ? 'text-blue-300' : 'text-blue-900'
           }`}>
             <Sparkles className="h-5 w-5 mr-2" />
             Free Translation Features
           </h3>
-          <ul className={`space-y-3 ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+          <ul className={`space-y-3 ${isDark ? 'text-blue-200' : 'text-blue-800'}`}>
             <li className="flex items-start">
               <span className={`inline-block w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0 ${
-                isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
+                isDark ? 'bg-blue-400' : 'bg-blue-600'
               }`}></span>
               <span>Automatically detects the language of your input text</span>
             </li>
             <li className="flex items-start">
               <span className={`inline-block w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0 ${
-                isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
+                isDark ? 'bg-blue-400' : 'bg-blue-600'
               }`}></span>
               <span>Completely free - 50,000 characters per day</span>
             </li>
             <li className="flex items-start">
               <span className={`inline-block w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0 ${
-                isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
+                isDark ? 'bg-blue-400' : 'bg-blue-600'
               }`}></span>
               <span>Supports 30+ languages including major world languages</span>
             </li>
             <li className="flex items-start">
               <span className={`inline-block w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0 ${
-                isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
+                isDark ? 'bg-blue-400' : 'bg-blue-600'
               }`}></span>
               <span>Optional auto-translate mode for instant results as you type</span>
             </li>
             <li className="flex items-start">
               <span className={`inline-block w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0 ${
-                isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
+                isDark ? 'bg-blue-400' : 'bg-blue-600'
               }`}></span>
               <span>Dyslexia-friendly design with optimized fonts and colors</span>
             </li>
