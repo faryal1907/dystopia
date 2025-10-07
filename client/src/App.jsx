@@ -17,6 +17,8 @@ import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Summarize from './pages/Summarize.jsx'
 import Quiz from './pages/Quiz.jsx'
+import SpeedReading from './pages/SpeedReading.jsx'
+
 
 function App() {
   useEffect(() => {
@@ -49,7 +51,8 @@ function App() {
                     <Route path="/translation" element={<Translation />} />
                     <Route path="/focus-mode" element={<FocusMode />} />
                     <Route path="/summarize" element={<Summarize />} />
-                    <Route path="/quiz" element={<Quiz />} /> {/* NEW! */}
+                    <Route path="/quiz" element={<Quiz />} />
+                    <Route path="/speed-reading" element={<SpeedReading />} /> {/* NEW! */}
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />

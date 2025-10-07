@@ -127,6 +127,28 @@ const Dashboard = () => {
     }
   }, [readingProgress])
 
+  // Add speed reading stats
+useEffect(() => {
+  const speedHistory = localStorage.getItem('speed-reading-history')
+  if (speedHistory) {
+    try {
+      const history = JSON.parse(speedHistory)
+      if (history.length > 0) {
+        const avgWPM = Math.round(
+          history.reduce((sum, h) => sum + h.wpm, 0) / history.length
+        )
+        setStats(prev => ({
+          ...prev,
+          averageReadingSpeed: avgWPM
+        }))
+      }
+    } catch (e) {
+      console.error('Error loading speed reading data:', e)
+    }
+  }
+}, [])
+
+
   if (!user) {
     return <Navigate to="/login" replace />
   }
@@ -141,35 +163,43 @@ const Dashboard = () => {
   }
 
   const quickActions = [
-    {
-      title: 'Text to Speech',
-      description: 'Convert text to natural speech',
-      href: '/text-to-speech',
-      icon: Volume2,
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      title: 'Translation',
-      description: 'Translate text to any language',
-      href: '/translation',
-      icon: Languages,
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      title: 'Focus Mode',
-      description: 'Distraction-free reading',
-      href: '/focus-mode',
-      icon: Focus,
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      title: 'Summarize',
-      description: 'AI-powered text summarization',
-      href: '/summarize',
-      icon: Zap,
-      color: 'from-pink-500 to-rose-500'
-    }
-  ]
+  {
+    title: 'Text to Speech',
+    description: 'Convert text to natural speech',
+    href: '/text-to-speech',
+    icon: Volume2,
+    color: 'from-blue-500 to-cyan-500'
+  },
+  {
+    title: 'Translation',
+    description: 'Translate text to any language',
+    href: '/translation',
+    icon: Languages,
+    color: 'from-green-500 to-emerald-500'
+  },
+  {
+    title: 'Focus Mode',
+    description: 'Distraction-free reading',
+    href: '/focus-mode',
+    icon: Focus,
+    color: 'from-purple-500 to-pink-500'
+  },
+  {
+    title: 'Summarize',
+    description: 'AI-powered text summarization',
+    href: '/summarize',
+    icon: Zap,
+    color: 'from-pink-500 to-rose-500'
+  },
+  {
+    title: 'Speed Reading', // NEW!
+    description: 'Train and improve reading speed',
+    href: '/speed-reading',
+    icon: Zap,
+    color: 'from-orange-500 to-amber-500'
+  }
+]
+
 
   const dashboardStats = [
     {
