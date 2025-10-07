@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Play, Pause, CheckCircle, Trophy, TrendingUp, Target, BookOpen, Award, Clock, BarChart3 } from 'lucide-react'
+import { Zap, Play, Pause, CheckCircle, XCircle, Trophy, TrendingUp, Target, Award, Clock, BarChart3 } from 'lucide-react'
 import { speedReadingService } from '../services/speedReadingService'
 import { useUser } from '../context/UserContext'
-import { Line } from 'recharts'
-import { LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useTheme } from '../context/ThemeContext'
 
 const SpeedReading = () => {
   const { isDark } = useTheme()
   const { saveReadingProgress } = useUser()
-  const [mode, setMode] = useState('home') // home, test, train, results
+  const [mode, setMode] = useState('home')
   const [selectedLevel, setSelectedLevel] = useState(1)
   const [isReading, setIsReading] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -19,12 +18,10 @@ const SpeedReading = () => {
   const [startTime, setStartTime] = useState(null)
   const [testResults, setTestResults] = useState(null)
   const [showQuiz, setShowQuiz] = useState(false)
-  const [quizAnswers, setQuizAnswers] = useState([])
   const [history, setHistory] = useState([])
   
   const intervalRef = useRef(null)
 
-  // Load history from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('speed-reading-history')
     if (saved) {
@@ -32,6 +29,14 @@ const SpeedReading = () => {
         setHistory(JSON.parse(saved))
       } catch (e) {
         console.error('Error loading history:', e)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
       }
     }
   }, [])
@@ -46,6 +51,8 @@ const SpeedReading = () => {
     setStartTime(null)
     setIsReading(false)
     setIsPaused(false)
+    setTestResults(null)
+    setShowQuiz(false)
   }
 
   const handleStart = () => {
@@ -96,25 +103,21 @@ const SpeedReading = () => {
     setShowQuiz(true)
   }
 
-  const handleQuizComplete = async (answers) => {
-    const questions = speedReadingService.getComprehensionQuestions(selectedLevel)
-    const correct = answers.filter((a, i) => a === questions[i].correct).length
-    const comprehension = Math.round((correct / questions.length) * 100)
+  const handleQuizComplete = async (answers, correct, total) => {
+    const comprehension = Math.round((correct / total) * 100)
 
     const result = {
       ...testResults,
       comprehension,
       correct,
-      total: questions.length,
+      total,
       date: new Date().toISOString()
     }
 
-    // Save to history
     const newHistory = [result, ...history.slice(0, 19)]
     setHistory(newHistory)
     localStorage.setItem('speed-reading-history', JSON.stringify(newHistory))
 
-    // Save to reading progress
     try {
       await saveReadingProgress(`speed-reading-${Date.now()}`, {
         text: words.join(' ').substring(0, 100),
@@ -127,6 +130,7 @@ const SpeedReading = () => {
       console.warn('Could not save progress:', error)
     }
 
+    setTestResults(result)
     setMode('results')
     setShowQuiz(false)
   }
@@ -147,12 +151,11 @@ const SpeedReading = () => {
     ? Math.max(...history.map(h => h.wpm))
     : 0
 
-  // Home Screen
+  // HOME SCREEN
   if (mode === 'home') {
     return (
       <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
         <div className="max-w-6xl mx-auto px-4">
-          {/* Header */}
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
@@ -169,7 +172,6 @@ const SpeedReading = () => {
             </p>
           </div>
 
-          {/* Stats */}
           {history.length > 0 && (
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
@@ -177,32 +179,25 @@ const SpeedReading = () => {
                 <div className="text-2xl font-bold text-[var(--text-primary)] dyslexia-text">
                   {bestWPM}
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Best WPM
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Best WPM</div>
               </div>
               <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
                 <TrendingUp className="h-6 w-6 text-green-600 mb-2" />
                 <div className="text-2xl font-bold text-[var(--text-primary)] dyslexia-text">
                   {averageWPM}
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Average WPM
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Average WPM</div>
               </div>
               <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
                 <BarChart3 className="h-6 w-6 text-blue-600 mb-2" />
                 <div className="text-2xl font-bold text-[var(--text-primary)] dyslexia-text">
                   {history.length}
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Sessions
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Sessions</div>
               </div>
             </div>
           )}
 
-          {/* Training Levels */}
           <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] mb-8">
             <h2 className="text-xl font-bold text-[var(--text-primary)] dyslexia-text mb-6">
               Choose Your Level
@@ -231,7 +226,6 @@ const SpeedReading = () => {
             </div>
           </div>
 
-          {/* Progress Chart */}
           {history.length > 2 && (
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h2 className="text-xl font-bold text-[var(--text-primary)] dyslexia-text mb-6">
@@ -264,7 +258,7 @@ const SpeedReading = () => {
     )
   }
 
-  // Training Screen
+  // TRAINING SCREEN
   if (mode === 'train') {
     const level = speedReadingService.levels.find(l => l.id === selectedLevel)
     const progress = words.length > 0 ? (currentWordIndex / words.length) * 100 : 0
@@ -272,7 +266,6 @@ const SpeedReading = () => {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
-          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-2xl font-bold dyslexia-text mb-1">
@@ -293,7 +286,6 @@ const SpeedReading = () => {
             </button>
           </div>
 
-          {/* Progress Bar */}
           <div className="w-full bg-gray-800 rounded-full h-2 mb-8">
             <motion.div
               className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
@@ -303,20 +295,17 @@ const SpeedReading = () => {
             />
           </div>
 
-          {/* Word Display */}
           <div className="bg-gray-800 rounded-2xl p-16 mb-8 min-h-[300px] flex items-center justify-center">
             <motion.div
               key={currentWordIndex}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
               className="text-6xl font-bold text-center dyslexia-text"
             >
               {words[currentWordIndex]}
             </motion.div>
           </div>
 
-          {/* Controls */}
           <div className="flex items-center justify-center space-x-4">
             {!isReading && !isPaused && (
               <button
@@ -359,7 +348,6 @@ const SpeedReading = () => {
           </div>
         </div>
 
-        {/* Quiz Modal */}
         {showQuiz && (
           <SpeedReadingQuiz
             questions={speedReadingService.getComprehensionQuestions(selectedLevel)}
@@ -370,7 +358,7 @@ const SpeedReading = () => {
     )
   }
 
-  // Results Screen
+  // RESULTS SCREEN
   if (mode === 'results' && testResults) {
     const level = speedReadingService.getLevelForWPM(testResults.wpm)
     const nextLevel = speedReadingService.getNextLevel(testResults.wpm)
@@ -396,43 +384,31 @@ const SpeedReading = () => {
               </p>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="text-center p-4 bg-[var(--bg-secondary)] rounded-lg">
                 <div className="text-3xl font-bold text-orange-600 dyslexia-text">
                   {testResults.wpm}
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Words/Min
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Words/Min</div>
               </div>
               <div className="text-center p-4 bg-[var(--bg-secondary)] rounded-lg">
                 <div className="text-3xl font-bold text-purple-600 dyslexia-text">
                   {testResults.comprehension}%
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Comprehension
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Comprehension</div>
               </div>
               <div className="text-center p-4 bg-[var(--bg-secondary)] rounded-lg">
                 <div className="text-3xl font-bold text-blue-600 dyslexia-text">
                   {Math.round(testResults.duration / 1000)}s
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Time
-                </div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">Time</div>
               </div>
               <div className="text-center p-4 bg-[var(--bg-secondary)] rounded-lg">
-                <div className="text-3xl dyslexia-text">
-                  {level.icon}
-                </div>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  {level.name}
-                </div>
+                <div className="text-3xl dyslexia-text">{level.icon}</div>
+                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">{level.name}</div>
               </div>
             </div>
 
-            {/* Recommendation */}
             <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-6 mb-8 border-2 border-orange-200 dark:border-orange-800">
               <div className="flex items-start space-x-4">
                 <div className="text-4xl">{recommendation.icon}</div>
@@ -447,7 +423,6 @@ const SpeedReading = () => {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => setMode('home')}
@@ -473,57 +448,125 @@ const SpeedReading = () => {
   return null
 }
 
-// Simple Quiz Component
+// ENHANCED QUIZ COMPONENT WITH INSTANT FEEDBACK
 const SpeedReadingQuiz = ({ questions, onComplete }) => {
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState([])
   const [selected, setSelected] = useState(null)
+  const [showFeedback, setShowFeedback] = useState(false)
 
-  const handleNext = () => {
-    const newAnswers = [...answers, selected]
+  const handleSubmit = () => {
+    if (selected === null) return
     
-    if (currentQ < questions.length - 1) {
-      setAnswers(newAnswers)
-      setCurrentQ(currentQ + 1)
-      setSelected(null)
-    } else {
-      onComplete(newAnswers)
-    }
+    setShowFeedback(true)
+    
+    setTimeout(() => {
+      const newAnswers = [...answers, selected]
+      
+      if (currentQ < questions.length - 1) {
+        setAnswers(newAnswers)
+        setCurrentQ(currentQ + 1)
+        setSelected(null)
+        setShowFeedback(false)
+      } else {
+        // Calculate score
+        const correct = newAnswers.filter((a, i) => a === questions[i].correct).length
+        onComplete(newAnswers, correct, questions.length)
+      }
+    }, 2000)
   }
 
   const question = questions[currentQ]
+  const isCorrect = selected === question.correct
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-2xl w-full">
-        <h3 className="text-xl font-bold text-[var(--text-primary)] dyslexia-text mb-6">
-          Question {currentQ + 1} of {questions.length}
-        </h3>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xl font-bold text-[var(--text-primary)] dyslexia-text">
+              Comprehension Check
+            </h3>
+            <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
+              {currentQ + 1} / {questions.length}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all"
+              style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
         <p className="text-lg text-[var(--text-primary)] dyslexia-text mb-6">
           {question.question}
         </p>
+
         <div className="space-y-3 mb-6">
-          {question.options.map((opt, i) => (
-            <button
-              key={i}
-              onClick={() => setSelected(i)}
-              className={`w-full text-left p-4 rounded-lg border-2 transition-all dyslexia-text ${
-                selected === i
-                  ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-500'
-                  : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-orange-500'
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
+          {question.options.map((opt, i) => {
+            const isSelected = selected === i
+            const isCorrectOption = i === question.correct
+            const showCorrect = showFeedback && isCorrectOption
+            const showWrong = showFeedback && isSelected && !isCorrectOption
+
+            return (
+              <button
+                key={i}
+                onClick={() => !showFeedback && setSelected(i)}
+                disabled={showFeedback}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all dyslexia-text flex items-center justify-between ${
+                  showCorrect
+                    ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-300'
+                    : showWrong
+                    ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-300'
+                    : isSelected
+                    ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-500'
+                    : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-orange-500'
+                }`}
+              >
+                <span>{opt}</span>
+                {showCorrect && <CheckCircle className="h-5 w-5 flex-shrink-0" />}
+                {showWrong && <XCircle className="h-5 w-5 flex-shrink-0" />}
+              </button>
+            )
+          })}
         </div>
-        <button
-          onClick={handleNext}
-          disabled={selected === null}
-          className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium dyslexia-text"
-        >
-          {currentQ < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-        </button>
+
+        {showFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 rounded-lg mb-6 ${
+              isCorrect
+                ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-500'
+                : 'bg-red-100 dark:bg-red-900/30 border-2 border-red-500'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              {isCorrect ? (
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              )}
+              <span className={`font-semibold dyslexia-text ${
+                isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+              }`}>
+                {isCorrect ? 'Correct!' : 'Not quite!'}
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {!showFeedback && (
+          <button
+            onClick={handleSubmit}
+            disabled={selected === null}
+            className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium dyslexia-text"
+          >
+            {currentQ < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+          </button>
+        )}
       </div>
     </div>
   )
