@@ -16,6 +16,7 @@ import Settings from './pages/Settings.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Summarize from './pages/Summarize.jsx'
+import Quiz from './pages/Quiz.jsx'
 
 function App() {
   useEffect(() => {
@@ -47,7 +48,8 @@ function App() {
                     <Route path="/text-to-speech" element={<TextToSpeech />} />
                     <Route path="/translation" element={<Translation />} />
                     <Route path="/focus-mode" element={<FocusMode />} />
-                    <Route path="/summarize" element={<Summarize />} /> {/* NEW! */}
+                    <Route path="/summarize" element={<Summarize />} />
+                    <Route path="/quiz" element={<Quiz />} /> {/* NEW! */}
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />

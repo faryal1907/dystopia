@@ -1,7 +1,7 @@
 // client/src/pages/FocusMode.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Focus, Play, Pause, Square, Settings as SettingsIcon, X, ArrowLeft, FileText, Volume2 } from 'lucide-react'
+import { Focus, Play, Pause, Square, Settings as SettingsIcon, X, ArrowLeft, FileText, Volume2, Brain } from 'lucide-react'
 import { useUser } from '../context/UserContext.jsx'
 import { useNavigate } from 'react-router-dom'
 import WordTooltip from '../components/WordTooltip'
@@ -457,6 +457,21 @@ const FocusMode = () => {
                   <Play className="h-5 w-5 mr-2" />
                   Start Focus Reading
                 </button>
+
+                <button
+                  onClick={() => {
+                    if (text.trim()) {
+                      localStorage.setItem('quiz-text', text)
+                      navigate('/quiz')
+                    }
+                  }}
+                  disabled={!text.trim()}
+                  className="p-2 bg-gray-700 text-gray-300 rounded-lg hover:text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Take quiz on this text"
+                >
+                  <Brain className="h-4 w-4" />
+                </button>
+
               </div>
             </div>
 

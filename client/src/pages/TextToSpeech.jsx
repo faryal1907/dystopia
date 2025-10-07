@@ -1,7 +1,7 @@
 // client/src/pages/TextToSpeech.jsx
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader, Heart, X, Zap, FileText } from 'lucide-react'
+import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader, Heart, X, Zap, FileText, Brain } from 'lucide-react'
 import { ttsService } from '../utils/textToSpeech.js'
 import { useUser } from '../context/UserContext.jsx'
 import WordTooltip from '../components/WordTooltip'
@@ -372,6 +372,21 @@ const TextToSpeech = () => {
                   >
                     <Heart className="h-4 w-4" />
                   </button>
+
+                  <button
+                    onClick={() => {
+                      if (text.trim()) {
+                        localStorage.setItem('quiz-text', text)
+                        navigate('/quiz')
+                      }
+                    }}
+                    disabled={!text.trim()}
+                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Take comprehension quiz"
+                  >
+                    <Brain className="h-4 w-4" />
+                  </button>
+
 
                   <button
                     onClick={() => {

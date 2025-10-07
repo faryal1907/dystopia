@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   FileText, Upload, Copy, RotateCcw, CheckCircle, AlertCircle, Loader, 
-  Zap, TrendingDown, Clock, ArrowRight, Volume2, Focus, Share2, Download
+  Zap, TrendingDown, Clock, ArrowRight, Volume2, Focus, Share2, Download, Brain
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { summarizationService } from '../services/summarizationService'
@@ -321,6 +321,20 @@ const Summarize = () => {
                         <Focus className="h-5 w-5" />
                         <span className="font-medium dyslexia-text text-sm">Focus</span>
                       </button>
+
+                      <button
+                        onClick={() => {
+                            if (summaryResult) {
+                            localStorage.setItem('quiz-text', summaryResult.summary)
+                            navigate('/quiz')
+                            }
+                        }}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 transition-colors"
+                        >
+                        <Brain className="h-4 w-4" />
+                        <span className="font-medium dyslexia-text text-sm">Test Knowledge</span>
+                        </button>
+
                     </div>
 
                     <button
