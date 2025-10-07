@@ -26,7 +26,7 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? ['https://your-domain.com']
-    : ['http://localhost:5173', 'http://localhost:5174'],
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -39,9 +39,7 @@ const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip rate limiting for certain routes
   skip: (req) => {
-    // Don't rate limit health checks
     return req.path === '/api/health'
   }
 })
@@ -53,6 +51,19 @@ const frequentLimiter = rateLimit({
   message: 'Too many requests, please slow down.',
   standardHeaders: true,
   legacyHeaders: false
+})
+
+// SPECIAL: Very lenient rate limit for translation (auto-translate feature)
+const translationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute (1 per second for auto-translate)
+  message: 'Translation rate limit exceeded. Please wait a moment.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Don't rate limit health checks
+    return req.path === '/api/translation/health' || req.path === '/api/translation/languages'
+  }
 })
 
 app.use('/api/', generalLimiter)
@@ -71,7 +82,8 @@ if (process.env.NODE_ENV === 'development') {
 // Routes with appropriate rate limiting
 app.use('/api/users', frequentLimiter, userRoutes)
 app.use('/api/reading', frequentLimiter, readingRoutes)
-app.use('/api/translation', frequentLimiter, translationRoutes)
+// Translation gets its own rate limiter for auto-translate functionality
+app.use('/api/translation', translationLimiter, translationRoutes)
 
 // Health check endpoint (no rate limit)
 app.get('/api/health', (req, res) => {
@@ -142,8 +154,9 @@ process.on('SIGINT', () => {
 const server = app.listen(PORT, () => {
   console.log(`🚀 VOXA Server running on port ${PORT}`)
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔒 CORS enabled for: ${process.env.NODE_ENV === 'production' ? 'production domains' : 'localhost:5173, localhost:5174'}`)
+  console.log(`🔒 CORS enabled for: ${process.env.NODE_ENV === 'production' ? 'production domains' : 'localhost:5173, localhost:5174, localhost:3000'}`)
   console.log(`⚡ Rate limiting: 1000 requests per 15 minutes`)
+  console.log(`🌐 Translation API: http://localhost:${PORT}/api/translation`)
 })
 
 export default app

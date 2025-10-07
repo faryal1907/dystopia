@@ -5,7 +5,6 @@ import { Settings as SettingsIcon, User, Eye, Volume2, Languages, Palette, Save,
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
-import { translationService } from '../utils/translation'
 
 const Settings = () => {
   const { user } = useAuth()
