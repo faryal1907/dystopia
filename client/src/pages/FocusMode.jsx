@@ -7,6 +7,7 @@ import WordTooltip from '../components/WordTooltip'
 import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
+import SaveToCollection from '../components/SaveToCollection'
 
 
 const FocusMode = () => {
@@ -458,6 +459,16 @@ const FocusMode = () => {
                   >
                     <Brain className="h-4 w-4" />
                   </button>
+
+
+                  <SaveToCollection
+                    text={text}
+                    title={text.substring(0, 50) + '...'}
+                    source="focus-mode"
+                    className="ml-2"
+                  />
+
+
                 </div>
               </div>
 

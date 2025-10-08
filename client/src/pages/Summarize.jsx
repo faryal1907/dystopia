@@ -11,6 +11,10 @@ import SummaryDisplay from '../components/SummaryDisplay'
 import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
+import SaveToCollection from '../components/SaveToCollection'
+import { collectionsService } from '../services/collectionsService'
+import { Bookmark } from 'lucide-react'
+
 
 const Summarize = () => {
   const navigate = useNavigate()
@@ -385,6 +389,25 @@ const Summarize = () => {
                       <Copy className="h-4 w-4" />
                       <span className="font-medium dyslexia-text text-sm">Copy Summary</span>
                     </button>
+
+                    <button
+                      onClick={() => {
+                        // Save both original and summary
+                        collectionsService.addItem(text, 'articles', {
+                          title: text.substring(0, 50) + '...',
+                          source: 'summarize',
+                          hasSummary: true,
+                          summary: summaryResult.summary
+                        })
+                        setSuccess('Saved to Articles collection!')
+                        setTimeout(() => setSuccess(''), 2000)
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <Bookmark className="h-4 w-4" />
+                      <span className="font-medium dyslexia-text text-sm">Save to Collections</span>
+                    </button>
+
                   </div>
                 </motion.div>
               )}

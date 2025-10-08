@@ -1,14 +1,14 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain, FileText } from 'lucide-react'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain, FileText, Bookmark, Folder, Eye } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { analyticsService } from '../services/analyticsService'
 import InsightCard from '../components/InsightCard'
 import WeeklyChart from '../components/WeeklyChart'
+import { collectionsService } from '../services/collectionsService'
+import { useEyeComfort } from '../context/EyeComfortContext'
 
-// Helper function defined at the top to avoid initialization issues
 const formatTimeAgo = (date) => {
   if (!date) return 'Just now'
 
@@ -28,30 +28,16 @@ const formatTimeAgo = (date) => {
 
 const Dashboard = () => {
   const { user } = useAuth()
-  const { userProfile, readingProgress, achievements, stats, fetchUserData } = useUser()
+  const navigate = useNavigate()
+  const { userProfile, readingProgress, achievements, stats, fetchUserData, setStats } = useUser()
   const [greeting, setGreeting] = useState('')
   const [weeklyGoal, setWeeklyGoal] = useState({ current: 0, target: 7 })
   const [lastFetch, setLastFetch] = useState(0)
 
-  // NEW: AI-powered analytics state
   const [analyticsData, setAnalyticsData] = useState(null)
   const [insights, setInsights] = useState([])
   const [weeklyActivity, setWeeklyActivity] = useState([])
 
-  // Predefined achievements that users can earn
-  const predefinedAchievements = [
-    { id: 'first_read', title: 'First Steps', description: 'Completed your first reading session', threshold: 1, type: 'texts_read' },
-    { id: 'early_bird', title: 'Early Bird', description: 'Read before 9 AM', threshold: 1, type: 'special' },
-    { id: 'five_sessions', title: 'Getting Started', description: 'Completed 5 reading sessions', threshold: 5, type: 'texts_read' },
-    { id: 'ten_day_streak', title: 'Consistency Master', description: 'Maintained a 10-day reading streak', threshold: 10, type: 'streak' },
-    { id: 'speed_reader', title: 'Speed Reader', description: 'Read 5 texts in one day', threshold: 5, type: 'daily_reads' },
-    { id: 'multilingual', title: 'Multilingual', description: 'Used translation feature 10 times', threshold: 10, type: 'translations' },
-    { id: 'focused', title: 'Focused Reader', description: 'Used focus mode for 30 minutes', threshold: 1800000, type: 'focus_time' },
-    { id: 'century', title: 'Century Club', description: 'Read 100 texts', threshold: 100, type: 'texts_read' },
-    { id: 'marathon', title: 'Marathon Reader', description: 'Read for 5 hours total', threshold: 18000000, type: 'reading_time' }
-  ]
-
-  // Memoized recent activity
   const recentActivity = useMemo(() => {
     if (readingProgress && readingProgress.length > 0) {
       return readingProgress.slice(0, 5).map((session, index) => ({
@@ -65,7 +51,6 @@ const Dashboard = () => {
     return []
   }, [readingProgress])
 
-  // Set greeting once on mount
   useEffect(() => {
     const hour = new Date().getHours()
     if (hour < 12) setGreeting('Good morning')
@@ -73,10 +58,8 @@ const Dashboard = () => {
     else setGreeting('Good evening')
   }, [])
 
-  // Optimized data fetching - only when user logs in
   const fetchDataOptimized = useCallback(async () => {
     const now = Date.now()
-    // Only fetch if more than 5 minutes have passed
     if (now - lastFetch > 300000) {
       try {
         await fetchUserData()
@@ -89,29 +72,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      // Initial fetch
       fetchDataOptimized()
     }
   }, [user])
 
-  // NEW: Calculate analytics when readingProgress changes
   useEffect(() => {
     if (readingProgress && readingProgress.length > 0) {
-      // Calculate stats
       const calculatedStats = analyticsService.calculateStats(readingProgress)
       setAnalyticsData(calculatedStats)
 
-      // Generate AI insights
       const generatedInsights = analyticsService.generateInsights(calculatedStats, readingProgress)
       setInsights(generatedInsights)
 
-      // Get weekly activity data
       const weekData = analyticsService.getWeeklyActivity(readingProgress)
       setWeeklyActivity(weekData)
     }
   }, [readingProgress])
 
-  // Calculate weekly goal progress
   useEffect(() => {
     if (readingProgress && readingProgress.length > 0) {
       const today = new Date()
@@ -127,27 +104,25 @@ const Dashboard = () => {
     }
   }, [readingProgress])
 
-  // Add speed reading stats
-useEffect(() => {
-  const speedHistory = localStorage.getItem('speed-reading-history')
-  if (speedHistory) {
-    try {
-      const history = JSON.parse(speedHistory)
-      if (history.length > 0) {
-        const avgWPM = Math.round(
-          history.reduce((sum, h) => sum + h.wpm, 0) / history.length
-        )
-        setStats(prev => ({
-          ...prev,
-          averageReadingSpeed: avgWPM
-        }))
+  useEffect(() => {
+    const speedHistory = localStorage.getItem('speed-reading-history')
+    if (speedHistory) {
+      try {
+        const history = JSON.parse(speedHistory)
+        if (history.length > 0) {
+          const avgWPM = Math.round(
+            history.reduce((sum, h) => sum + h.wpm, 0) / history.length
+          )
+          setStats(prev => ({
+            ...prev,
+            averageReadingSpeed: avgWPM
+          }))
+        }
+      } catch (e) {
+        console.error('Error loading speed reading data:', e)
       }
-    } catch (e) {
-      console.error('Error loading speed reading data:', e)
     }
-  }
-}, [])
-
+  }, [])
 
   if (!user) {
     return <Navigate to="/login" replace />
@@ -163,51 +138,49 @@ useEffect(() => {
   }
 
   const quickActions = [
-  {
-    title: 'Text to Speech',
-    description: 'Convert text to natural speech',
-    href: '/text-to-speech',
-    icon: Volume2,
-    color: 'from-blue-500 to-cyan-500'
-  },
-  {
-    title: 'Translation',
-    description: 'Translate text to any language',
-    href: '/translation',
-    icon: Languages,
-    color: 'from-green-500 to-emerald-500'
-  },
-  {
-    title: 'Focus Mode',
-    description: 'Distraction-free reading',
-    href: '/focus-mode',
-    icon: Focus,
-    color: 'from-purple-500 to-pink-500'
-  },
-  {
-    title: 'Summarize',
-    description: 'AI-powered text summarization',
-    href: '/summarize',
-    icon: FileText,
-    color: 'from-pink-500 to-rose-500'
-  },
-  {
-    title: 'Quiz',
-    description: 'Test reading comprehension',
-    href: '/quiz',
-    icon: Brain,
-    color: 'from-indigo-500 to-purple-500'
-  },
-  {
-    title: 'Speed Reading',
-    description: 'Train and improve reading speed',
-    href: '/speed-reading',
-    icon: Zap,
-    color: 'from-orange-500 to-amber-500'
-  }
-]
-
-
+    {
+      title: 'Text to Speech',
+      description: 'Convert text to natural speech',
+      href: '/text-to-speech',
+      icon: Volume2,
+      color: 'from-blue-500 to-cyan-500'
+    },
+    {
+      title: 'Translation',
+      description: 'Translate text to any language',
+      href: '/translation',
+      icon: Languages,
+      color: 'from-green-500 to-emerald-500'
+    },
+    {
+      title: 'Focus Mode',
+      description: 'Distraction-free reading',
+      href: '/focus-mode',
+      icon: Focus,
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Summarize',
+      description: 'AI-powered text summarization',
+      href: '/summarize',
+      icon: FileText,
+      color: 'from-pink-500 to-rose-500'
+    },
+    {
+      title: 'Quiz',
+      description: 'Test reading comprehension',
+      href: '/quiz',
+      icon: Brain,
+      color: 'from-indigo-500 to-purple-500'
+    },
+    {
+      title: 'Speed Reading',
+      description: 'Train and improve reading speed',
+      href: '/speed-reading',
+      icon: Zap,
+      color: 'from-orange-500 to-amber-500'
+    }
+  ]
 
   const dashboardStats = [
     {
@@ -311,7 +284,7 @@ useEffect(() => {
           })}
         </div>
 
-        {/* NEW: AI Insights Section */}
+        {/* AI Insights */}
         {insights.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
@@ -326,7 +299,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* NEW: Weekly Activity Chart */}
+        {/* Weekly Activity Chart */}
         {weeklyActivity.length > 0 && (
           <div className="mb-8">
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
@@ -373,9 +346,9 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Recent Activity */}
-          <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+          <div className="lg:col-span-2 bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
             <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
               <BarChart3 className="h-5 w-5 mr-2" />
               Recent Activity
@@ -413,8 +386,103 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Achievements */}
+          {/* Collections Widget */}
           <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text flex items-center">
+                <Bookmark className="h-5 w-5 mr-2 text-primary-600" />
+                My Collections
+              </h3>
+              <Link
+                to="/collections"
+                className="text-primary-600 hover:text-primary-700 text-sm dyslexia-text"
+              >
+                View All
+              </Link>
+            </div>
+
+            {(() => {
+              const collectionStats = collectionsService.getStats()
+              const collections = collectionsService.getAllCollections().collections
+
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="text-center p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="text-xl font-bold text-primary-600">{collectionStats.totalItems}</div>
+                      <div className="text-xs text-[var(--text-secondary)] dyslexia-text">Saved</div>
+                    </div>
+                    <div className="text-center p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="text-xl font-bold text-green-600">{collectionStats.totalCollections}</div>
+                      <div className="text-xs text-[var(--text-secondary)] dyslexia-text">Folders</div>
+                    </div>
+                    <div className="text-center p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="text-xl font-bold text-purple-600">
+                        {Math.ceil(collectionStats.totalWords / 200)}
+                      </div>
+                      <div className="text-xs text-[var(--text-secondary)] dyslexia-text">Min</div>
+                    </div>
+                  </div>
+
+                  {collections.slice(0, 3).map((collection) => (
+                    <div
+                      key={collection.id}
+                      className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors cursor-pointer"
+                      onClick={() => navigate('/collections')}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{collection.icon}</span>
+                        <div>
+                          <div className="font-medium text-[var(--text-primary)] dyslexia-text">
+                            {collection.name}
+                          </div>
+                          <div className="text-xs text-[var(--text-secondary)]">
+                            {collection.items.length} items
+                          </div>
+                        </div>
+                      </div>
+                      <Folder className="h-5 w-5 text-[var(--text-secondary)]" />
+                    </div>
+                  ))}
+
+                  {collectionStats.recentItems.length > 0 && (
+                    <div className="pt-3 border-t border-[var(--border-color)]">
+                      <div className="text-xs font-medium text-[var(--text-secondary)] mb-2 dyslexia-text">
+                        Recently Saved
+                      </div>
+                      <div className="space-y-2">
+                        {collectionStats.recentItems.slice(0, 3).map((item) => (
+                          <div
+                            key={item.id}
+                            className="text-sm text-[var(--text-primary)] dyslexia-text truncate"
+                          >
+                            • {item.metadata.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {collectionStats.totalItems === 0 && (
+                    <div className="text-center py-6">
+                      <Bookmark className="h-12 w-12 mx-auto mb-3 text-[var(--text-secondary)] opacity-50" />
+                      <p className="text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
+                        No saved texts yet
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] dyslexia-text">
+                        Start saving your favorite texts!
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Achievements */}
+          <div className="lg:col-span-2 bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
             <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
               <Trophy className="h-5 w-5 mr-2" />
               Recent Achievements
@@ -445,6 +513,66 @@ useEffect(() => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Eye Comfort Widget */}
+          <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+            {(() => {
+              const { settings: eyeSettings, isActive, getStats } = useEyeComfort()
+              const eyeStats = getStats()
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text flex items-center">
+                      <Eye className="h-5 w-5 mr-2 text-blue-600" />
+                      Eye Comfort
+                    </h3>
+                    {isActive && (
+                      <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-600 rounded-full dyslexia-text">
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="flex items-center space-x-2 text-sm text-blue-600 dyslexia-text">
+                      <Eye className="h-4 w-4" />
+                      <span>
+                        {eyeSettings.enabled 
+                          ? `Reminder every ${eyeSettings.interval} minutes` 
+                          : 'Timer disabled'
+                        }
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <span className="text-sm text-[var(--text-secondary)] dyslexia-text">Breaks Taken</span>
+                      <span className="font-bold text-green-600 dyslexia-text">{eyeStats.totalBreaksTaken}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <span className="text-sm text-[var(--text-secondary)] dyslexia-text">Breaks Skipped</span>
+                      <span className="font-bold text-red-600 dyslexia-text">{eyeStats.totalBreaksSkipped}</span>
+                    </div>
+                  </div>
+
+                  {eyeStats.lastBreakDate && (
+                    <div className="mt-4 text-xs text-[var(--text-secondary)] text-center dyslexia-text">
+                      Last break: {new Date(eyeStats.lastBreakDate).toLocaleTimeString()}
+                    </div>
+                  )}
+
+                  <Link
+                    to="/settings"
+                    className="mt-4 block text-center text-sm text-primary-600 hover:text-primary-700 dyslexia-text"
+                  >
+                    Configure Settings →
+                  </Link>
+                </>
+              )
+            })()}
           </div>
         </div>
 

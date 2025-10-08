@@ -19,6 +19,9 @@ import Summarize from './pages/Summarize.jsx'
 import Quiz from './pages/Quiz.jsx'
 import SpeedReading from './pages/SpeedReading.jsx'
 import { BionicProvider } from './context/BionicContext'
+import Collections from './pages/Collections'
+import { EyeComfortProvider } from './context/EyeComfortContext'
+import EyeBreakOverlay from './components/EyeBreakOverlay'
 
 
 function App() {
@@ -42,27 +45,31 @@ function App() {
         <UserProvider>
           <SettingsProvider>
             <BionicProvider>
-              <Router>
-                <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-                  <Navbar />
-                  <main>
-                    <Routes>
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/text-to-speech" element={<TextToSpeech />} />
-                      <Route path="/translation" element={<Translation />} />
-                      <Route path="/focus-mode" element={<FocusMode />} />
-                      <Route path="/summarize" element={<Summarize />} />
-                      <Route path="/quiz" element={<Quiz />} />
-                      <Route path="/speed-reading" element={<SpeedReading />} /> {/* NEW! */}
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                    </Routes>
-                  </main>
-                  <Footer />
-                </div>
-              </Router>
+               <EyeComfortProvider>
+                <Router>
+                  <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
+                    <Navbar />
+                    <main>
+                      <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/text-to-speech" element={<TextToSpeech />} />
+                        <Route path="/translation" element={<Translation />} />
+                        <Route path="/focus-mode" element={<FocusMode />} />
+                        <Route path="/summarize" element={<Summarize />} />
+                        <Route path="/quiz" element={<Quiz />} />
+                        <Route path="/speed-reading" element={<SpeedReading />} /> {/* NEW! */}
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/collections" element={<Collections />} />
+                      </Routes>
+                      <EyeBreakOverlay /> 
+                    </main>
+                    <Footer />
+                  </div>
+                </Router>
+              </EyeComfortProvider>
             </BionicProvider>
           </SettingsProvider>
         </UserProvider>

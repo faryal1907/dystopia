@@ -9,6 +9,9 @@ import SentimentDisplay from '../components/SentimentDisplay'
 import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
+import SaveToCollection from '../components/SaveToCollection'
+
+
 
 const TextToSpeech = () => {
   const { saveReadingProgress } = useUser()
@@ -378,6 +381,14 @@ const TextToSpeech = () => {
                   >
                     <Brain className="h-4 w-4" />
                   </button>
+
+                  <SaveToCollection
+                    text={text}
+                    title={text.substring(0, 50) + '...'}
+                    source="text-to-speech"
+                  />
+
+
                   <button
                     onClick={() => {
                       if (text.trim()) {
