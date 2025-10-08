@@ -22,6 +22,7 @@ import { BionicProvider } from './context/BionicContext'
 import Collections from './pages/Collections'
 import { EyeComfortProvider } from './context/EyeComfortContext'
 import EyeBreakOverlay from './components/EyeBreakOverlay'
+import Goals from './pages/Goals'
 
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/collections" element={<Collections />} />
+                        <Route path="/goals" element={<Goals />} />
                       </Routes>
                       <EyeBreakOverlay /> 
                     </main>

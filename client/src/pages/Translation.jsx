@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { translationService } from '../services/translationService.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { goalsService } from '../services/goalsService'
+
 
 // Safe settings hook with fallback
 const useSettingsSafe = () => {
@@ -121,6 +123,10 @@ const Translation = () => {
     } finally {
       setLoading(false);
     }
+    if (translatedText) {
+    // Update challenge progress
+    goalsService.updateChallengeProgress('translations', 1)
+  }
   };
 
   const handleCopy = async (text) => {

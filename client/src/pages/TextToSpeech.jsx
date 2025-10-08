@@ -10,6 +10,7 @@ import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
 import SaveToCollection from '../components/SaveToCollection'
+import { goalsService } from '../services/goalsService'
 
 
 
@@ -149,6 +150,11 @@ const TextToSpeech = () => {
           setTimeout(() => setSuccess(''), 3000)
           
           const duration = Date.now() - startTime
+          const wordsRead = text.split(/\s+/).filter(w => w.trim()).length
+          
+          // Update goals
+          goalsService.updateDailyProgress(wordsRead, duration)
+          
           saveReadingProgress(`tts-${Date.now()}`, {
             text: text.substring(0, 100),
             completed: true,
@@ -156,6 +162,7 @@ const TextToSpeech = () => {
             sessionType: 'text-to-speech'
           })
         },
+
         onPause: () => setIsPaused(true),
         onResume: () => setIsPaused(false),
         onError: (error) => {

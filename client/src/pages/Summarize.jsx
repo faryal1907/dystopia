@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   FileText, Upload, Copy, RotateCcw, CheckCircle, AlertCircle, Loader, 
-  Zap, TrendingDown, Clock, ArrowRight, Volume2, Focus, Share2, Download, Brain
+  Zap, TrendingDown, Clock, ArrowRight, Volume2, Focus, Share2, Download, Brain, Bookmark
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { summarizationService } from '../services/summarizationService'
@@ -11,10 +11,8 @@ import SummaryDisplay from '../components/SummaryDisplay'
 import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
-import SaveToCollection from '../components/SaveToCollection'
 import { collectionsService } from '../services/collectionsService'
-import { Bookmark } from 'lucide-react'
-
+import { goalsService } from '../services/goalsService'
 
 const Summarize = () => {
   const navigate = useNavigate()
@@ -105,9 +103,14 @@ const Summarize = () => {
         setSuccess('Summary generated successfully!')
         setTimeout(() => setSuccess(''), 3000)
         
-        // Make reading progress save optional (fail silently)
+        // ✅ UPDATE GOALS AND CHALLENGES
+        const wordsRead = text.split(/\s+/).filter(w => w.trim()).length
+        const duration = Date.now() - startTime
+        goalsService.updateDailyProgress(wordsRead, duration)
+        goalsService.updateChallengeProgress('summaries', 1)
+
+        // Save reading progress (optional - fail silently)
         try {
-          const duration = Date.now() - startTime
           await saveReadingProgress(`summary-${Date.now()}`, {
             text: text.substring(0, 100),
             summary: result.summary.substring(0, 100),
@@ -392,12 +395,10 @@ const Summarize = () => {
 
                     <button
                       onClick={() => {
-                        // Save both original and summary
-                        collectionsService.addItem(text, 'articles', {
-                          title: text.substring(0, 50) + '...',
+                        collectionsService.addItem(summaryResult.summary, 'articles', {
+                          title: summaryResult.summary.substring(0, 50) + '...',
                           source: 'summarize',
-                          hasSummary: true,
-                          summary: summaryResult.summary
+                          originalText: text.substring(0, 200)
                         })
                         setSuccess('Saved to Articles collection!')
                         setTimeout(() => setSuccess(''), 2000)
@@ -405,9 +406,8 @@ const Summarize = () => {
                       className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                     >
                       <Bookmark className="h-4 w-4" />
-                      <span className="font-medium dyslexia-text text-sm">Save to Collections</span>
+                      <span className="font-medium dyslexia-text text-sm">Save Summary</span>
                     </button>
-
                   </div>
                 </motion.div>
               )}
@@ -538,6 +538,10 @@ const Summarize = () => {
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
                   <span>⚡ Bionic mode for faster reading</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>🎯 Counts toward daily goals & challenges!</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>

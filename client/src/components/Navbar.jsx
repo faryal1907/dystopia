@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BookOpen, Menu, X, Sun, Moon, Settings, LogOut, User, Volume2, Languages, Focus, FileText, Brain, Zap, Bookmark, Eye } from 'lucide-react'
+import { BookOpen, Menu, X, Sun, Moon, Settings, LogOut, User, Volume2, Languages, Focus, FileText, Brain, Zap, Bookmark, Eye, Target } from 'lucide-react'
 
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -15,17 +15,19 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: User },
-    { name: 'Text to Speech', href: '/text-to-speech', icon: Volume2 },
-    { name: 'Translation', href: '/translation', icon: Languages },
-    { name: 'Focus Mode', href: '/focus-mode', icon: Focus },
-    { name: 'Summarize', href: '/summarize', icon: FileText },
-    { name: 'Collections', href: '/collections', icon: Bookmark },
-    { name: 'Quiz', href: '/quiz', icon: Brain },
-    { name: 'Speed Reading', href: '/speed-reading', icon: Zap },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ]
+ const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: User },
+  { name: 'Text to Speech', href: '/text-to-speech', icon: Volume2 },
+  { name: 'Translation', href: '/translation', icon: Languages },
+  { name: 'Focus Mode', href: '/focus-mode', icon: Focus },
+  { name: 'Summarize', href: '/summarize', icon: FileText },
+  { name: 'Collections', href: '/collections', icon: Bookmark },
+  { name: 'Goals', href: '/goals', icon: Target }, 
+  { name: 'Quiz', href: '/quiz', icon: Brain },
+  { name: 'Speed Reading', href: '/speed-reading', icon: Zap },
+  { name: 'Settings', href: '/settings', icon: Settings },
+]
+
 
   const handleSignOut = async () => {
     await signOut()

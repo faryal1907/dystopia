@@ -8,6 +8,7 @@ import { useBionic } from '../context/BionicContext'
 import BionicText from '../components/BionicText'
 import BionicToggle from '../components/BionicToggle'
 import SaveToCollection from '../components/SaveToCollection'
+import { goalsService } from '../services/goalsService'
 
 
 const FocusMode = () => {
@@ -57,6 +58,19 @@ const FocusMode = () => {
       localStorage.removeItem('focus-text')
     }
   }, [])
+
+  // Track reading progress for goals
+    useEffect(() => {
+      if (!isPaused && text.trim()) {
+        const interval = setInterval(() => {
+          const wordsRead = text.split(/\s+/).filter(w => w.trim()).length
+          goalsService.updateDailyProgress(wordsRead, 60000) // Update every minute
+        }, 60000) // Every minute
+
+        return () => clearInterval(interval)
+      }
+    }, [isPaused, text])
+
 
   // Word click handler for dictionary - WORKS WHEN PAUSED!
   const handleWordClick = (event) => {

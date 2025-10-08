@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain, FileText, Bookmark, Folder, Eye } from 'lucide-react'
+import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain, FileText, Bookmark, Folder, Eye, Target, Star, CheckCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { analyticsService } from '../services/analyticsService'
@@ -8,6 +8,7 @@ import InsightCard from '../components/InsightCard'
 import WeeklyChart from '../components/WeeklyChart'
 import { collectionsService } from '../services/collectionsService'
 import { useEyeComfort } from '../context/EyeComfortContext'
+import { goalsService } from '../services/goalsService'
 
 const formatTimeAgo = (date) => {
   if (!date) return 'Just now'
@@ -346,8 +347,9 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* THREE COLUMN LAYOUT: Recent Activity, Collections, Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Recent Activity */}
+          {/* Recent Activity - Spans 2 columns */}
           <div className="lg:col-span-2 bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
             <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
               <BarChart3 className="h-5 w-5 mr-2" />
@@ -386,12 +388,120 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Goals Widget - NEW! */}
+          <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+            {(() => {
+              const goals = goalsService.getGoals()
+              const goalStats = goalsService.getStats()
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text flex items-center">
+                      <Target className="h-5 w-5 mr-2 text-green-600" />
+                      Daily Goal
+                    </h3>
+                    <Link
+                      to="/goals"
+                      className="text-primary-600 hover:text-primary-700 text-sm dyslexia-text"
+                    >
+                      View All
+                    </Link>
+                  </div>
+
+                  {/* Progress Circle */}
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="relative w-32 h-32">
+                      <svg className="transform -rotate-90 w-32 h-32">
+                        <circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="none"
+                          className="text-gray-200 dark:text-gray-700"
+                        />
+                        <circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="none"
+                          strokeDasharray={`${2 * Math.PI * 56}`}
+                          strokeDashoffset={`${2 * Math.PI * 56 * (1 - Math.min(goalStats.dailyProgress / 100, 1))}`}
+                          className="text-green-600 transition-all duration-1000"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center flex-col">
+                        <span className="text-3xl font-bold text-[var(--text-primary)] dyslexia-text">
+                          {goalStats.dailyProgress}%
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] dyslexia-text">
+                          Complete
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Goal Details */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Flame className="h-4 w-4 text-orange-500" />
+                        <span className="text-sm text-[var(--text-secondary)] dyslexia-text">Streak</span>
+                      </div>
+                      <span className="font-bold text-orange-600 dyslexia-text">{goalStats.currentStreak} days</span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Trophy className="h-4 w-4 text-yellow-500" />
+                        <span className="text-sm text-[var(--text-secondary)] dyslexia-text">Challenges</span>
+                      </div>
+                      <span className="font-bold text-yellow-600 dyslexia-text">
+                        {goalStats.challengesCompleted}/{goalStats.totalChallenges}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Star className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm text-[var(--text-secondary)] dyslexia-text">Points</span>
+                      </div>
+                      <span className="font-bold text-blue-600 dyslexia-text">{goalStats.totalRewardsEarned}</span>
+                    </div>
+                  </div>
+
+                  {/* Current Goal */}
+                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="text-sm text-green-700 dark:text-green-300 dyslexia-text">
+                      <strong>Today's Goal:</strong> {goals.daily.current} / {goals.daily.target} {goals.daily.type}
+                    </div>
+                  </div>
+
+                  {goalStats.dailyProgress >= 100 && (
+                    <div className="mt-3 flex items-center justify-center space-x-2 text-green-600 text-sm dyslexia-text">
+                      <CheckCircle className="h-5 w-5" />
+                      <span>Goal completed! 🎉</span>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </div>
+
+        {/* TWO COLUMN LAYOUT: Collections, Eye Comfort, Achievements */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Collections Widget */}
           <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text flex items-center">
                 <Bookmark className="h-5 w-5 mr-2 text-primary-600" />
-                My Collections
+                Collections
               </h3>
               <Link
                 to="/collections"
@@ -445,24 +555,6 @@ const Dashboard = () => {
                     </div>
                   ))}
 
-                  {collectionStats.recentItems.length > 0 && (
-                    <div className="pt-3 border-t border-[var(--border-color)]">
-                      <div className="text-xs font-medium text-[var(--text-secondary)] mb-2 dyslexia-text">
-                        Recently Saved
-                      </div>
-                      <div className="space-y-2">
-                        {collectionStats.recentItems.slice(0, 3).map((item) => (
-                          <div
-                            key={item.id}
-                            className="text-sm text-[var(--text-primary)] dyslexia-text truncate"
-                          >
-                            • {item.metadata.title}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {collectionStats.totalItems === 0 && (
                     <div className="text-center py-6">
                       <Bookmark className="h-12 w-12 mx-auto mb-3 text-[var(--text-secondary)] opacity-50" />
@@ -477,42 +569,6 @@ const Dashboard = () => {
                 </div>
               )
             })()}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Achievements */}
-          <div className="lg:col-span-2 bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
-            <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
-              <Trophy className="h-5 w-5 mr-2" />
-              Recent Achievements
-            </h2>
-            <div className="space-y-4">
-              {recentAchievements.length > 0 ? recentAchievements.map((achievement) => (
-                <div key={achievement.id} className="flex items-start space-x-4 p-4 bg-[var(--bg-secondary)] rounded-lg">
-                  <div className="p-2 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-800 dark:to-orange-800 rounded-full">
-                    <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-[var(--text-primary)] dyslexia-text mb-1">
-                      {achievement.title}
-                    </h3>
-                    <p className="text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
-                      {achievement.description}
-                    </p>
-                    <span className="text-xs text-[var(--text-secondary)] dyslexia-text">
-                      {formatTimeAgo(achievement.earnedAt)}
-                    </span>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-[var(--text-secondary)] dyslexia-text">
-                  <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No achievements yet.</p>
-                  <p>Keep reading to unlock rewards!</p>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Eye Comfort Widget */}
@@ -573,6 +629,40 @@ const Dashboard = () => {
                 </>
               )
             })()}
+          </div>
+
+          {/* Achievements - Spans 1 column */}
+          <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
+              <Trophy className="h-5 w-5 mr-2" />
+              Achievements
+            </h2>
+            <div className="space-y-4">
+              {recentAchievements.length > 0 ? recentAchievements.map((achievement) => (
+                <div key={achievement.id} className="flex items-start space-x-4 p-4 bg-[var(--bg-secondary)] rounded-lg">
+                  <div className="p-2 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-800 dark:to-orange-800 rounded-full">
+                    <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-[var(--text-primary)] dyslexia-text mb-1">
+                      {achievement.title}
+                    </h3>
+                    <p className="text-sm text-[var(--text-secondary)] dyslexia-text mb-2">
+                      {achievement.description}
+                    </p>
+                    <span className="text-xs text-[var(--text-secondary)] dyslexia-text">
+                      {formatTimeAgo(achievement.earnedAt)}
+                    </span>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-8 text-[var(--text-secondary)] dyslexia-text">
+                  <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No achievements yet.</p>
+                  <p>Keep reading to unlock rewards!</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

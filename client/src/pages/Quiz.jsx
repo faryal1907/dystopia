@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { quizService } from '../services/quizService'
 import { useUser } from '../context/UserContext'
 import ReadingQuiz from '../components/ReadingQuiz'
+import { goalsService } from '../services/goalsService'
 
 const Quiz = () => {
   const navigate = useNavigate()
@@ -77,6 +78,15 @@ const Quiz = () => {
     const newHistory = [quizResult, ...quizHistory.slice(0, 9)]
     setQuizHistory(newHistory)
     localStorage.setItem('quiz-history', JSON.stringify(newHistory))
+
+    // Update goals - count words read in the quiz text
+    const wordsRead = text.split(/\s+/).filter(w => w.trim()).length
+    goalsService.updateDailyProgress(wordsRead, result.duration)
+
+    // Update challenge progress if passed (70% or higher)
+    if (result.percentage >= 70) {
+      goalsService.updateChallengeProgress('quizzes', 1)
+    }
 
     // Save to reading progress
     try {
@@ -396,6 +406,10 @@ const Quiz = () => {
                   <span className="mr-2">•</span>
                   <span>Pass with 70% or higher</span>
                 </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>🎯 Counts toward daily goals & challenges!</span>
+                </li>
               </ul>
             </motion.div>
 
@@ -423,6 +437,13 @@ const Quiz = () => {
                 >
                   <span className="font-medium text-[var(--text-primary)] dyslexia-text">Summarize & Quiz</span>
                   <ArrowRight className="h-4 w-4 text-[var(--text-secondary)]" />
+                </button>
+                <button
+                  onClick={() => navigate('/goals')}
+                  className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors"
+                >
+                  <span className="font-medium dyslexia-text">View Goals Progress</span>
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </motion.div>
