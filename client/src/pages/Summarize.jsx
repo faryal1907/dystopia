@@ -1,4 +1,3 @@
-// client/src/pages/Summarize.jsx
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -9,10 +8,15 @@ import { useNavigate } from 'react-router-dom'
 import { summarizationService } from '../services/summarizationService'
 import { useUser } from '../context/UserContext'
 import SummaryDisplay from '../components/SummaryDisplay'
+import { useBionic } from '../context/BionicContext'
+import BionicText from '../components/BionicText'
+import BionicToggle from '../components/BionicToggle'
 
 const Summarize = () => {
   const navigate = useNavigate()
   const { saveReadingProgress } = useUser()
+  const { enabled: bionicEnabled, intensity, toggleBionic, setIntensity } = useBionic()
+  
   const [text, setText] = useState('')
   const [summaryResult, setSummaryResult] = useState(null)
   const [summarizing, setSummarizing] = useState(false)
@@ -288,7 +292,7 @@ const Summarize = () => {
               </div>
             </motion.div>
 
-            {/* Summary Display */}
+            {/* Summary Display with Bionic Reading */}
             <AnimatePresence>
               {showSummary && summaryResult && (
                 <motion.div
@@ -297,6 +301,44 @@ const Summarize = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] shadow-lg"
                 >
+                  {/* Bionic Toggle */}
+                  <div className="mb-4">
+                    <BionicToggle
+                      enabled={bionicEnabled}
+                      onToggle={toggleBionic}
+                      intensity={intensity}
+                      onIntensityChange={setIntensity}
+                    />
+                  </div>
+
+                  {/* Summary Text with Bionic Support */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-3">
+                      Summary
+                    </h3>
+                    <div 
+                      className="p-4 bg-[var(--bg-secondary)] rounded-lg text-[var(--text-primary)] dyslexia-text"
+                      style={{ 
+                        lineHeight: '1.8', 
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'pre-wrap',
+                        wordWrap: 'break-word'
+                      }}
+                    >
+                      {bionicEnabled ? (
+                        <div style={{ fontWeight: 'normal' }}>
+                          <BionicText text={summaryResult.summary} intensity={intensity} />
+                        </div>
+                      ) : (
+                        summaryResult.summary
+                      )}
+                    </div>
+                    <div className="mt-2 text-sm text-[var(--text-secondary)] dyslexia-text">
+                      {summaryResult.summary.split(' ').length} words
+                      {bionicEnabled && ' • ⚡ Bionic mode active'}
+                    </div>
+                  </div>
+
                   <SummaryDisplay summary={summaryResult} onCopy={() => handleCopyText(summaryResult.summary)} />
 
                   {/* Quick Actions */}
@@ -324,17 +366,16 @@ const Summarize = () => {
 
                       <button
                         onClick={() => {
-                            if (summaryResult) {
+                          if (summaryResult) {
                             localStorage.setItem('quiz-text', summaryResult.summary)
                             navigate('/quiz')
-                            }
+                          }
                         }}
                         className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 transition-colors"
-                        >
+                      >
                         <Brain className="h-4 w-4" />
                         <span className="font-medium dyslexia-text text-sm">Test Knowledge</span>
-                        </button>
-
+                      </button>
                     </div>
 
                     <button
@@ -470,6 +511,10 @@ const Summarize = () => {
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
                   <span>Reduces reading time by 70-80%</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>⚡ Bionic mode for faster reading</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>

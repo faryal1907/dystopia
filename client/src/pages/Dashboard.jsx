@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain } from 'lucide-react'
+import { BookOpen, Volume2, Languages, Focus, Award, Clock, BarChart3, Trophy, Flame, ArrowRight, Zap, TrendingUp, Brain, FileText } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { analyticsService } from '../services/analyticsService'
@@ -188,17 +188,25 @@ useEffect(() => {
     title: 'Summarize',
     description: 'AI-powered text summarization',
     href: '/summarize',
-    icon: Zap,
+    icon: FileText,
     color: 'from-pink-500 to-rose-500'
   },
   {
-    title: 'Speed Reading', // NEW!
+    title: 'Quiz',
+    description: 'Test reading comprehension',
+    href: '/quiz',
+    icon: Brain,
+    color: 'from-indigo-500 to-purple-500'
+  },
+  {
+    title: 'Speed Reading',
     description: 'Train and improve reading speed',
     href: '/speed-reading',
     icon: Zap,
     color: 'from-orange-500 to-amber-500'
   }
 ]
+
 
 
   const dashboardStats = [
@@ -337,7 +345,7 @@ useEffect(() => {
             <Zap className="h-5 w-5 mr-2" />
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action) => {
               const Icon = action.icon
               return (

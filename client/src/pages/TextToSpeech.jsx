@@ -1,48 +1,53 @@
-// client/src/pages/TextToSpeech.jsx
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Play, Pause, Square, Upload, Volume2, Settings, Download, Copy, RotateCcw, Sliders, CheckCircle, AlertCircle, Loader, Heart, X, Zap, FileText, Brain } from 'lucide-react'
 import { ttsService } from '../utils/textToSpeech.js'
 import { useUser } from '../context/UserContext.jsx'
 import WordTooltip from '../components/WordTooltip'
-import { sentimentService } from '../services/sentimentService';
-import SentimentDisplay from '../components/SentimentDisplay';
+import { sentimentService } from '../services/sentimentService'
+import SentimentDisplay from '../components/SentimentDisplay'
+import { useBionic } from '../context/BionicContext'
+import BionicText from '../components/BionicText'
+import BionicToggle from '../components/BionicToggle'
 
 const TextToSpeech = () => {
   const { saveReadingProgress } = useUser()
+  const navigate = useNavigate()
+  
   const [text, setText] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [loading, setLoading] = useState(false)
+  
   const [voices, setVoices] = useState([])
   const [selectedVoice, setSelectedVoice] = useState('')
   const [rate, setRate] = useState(1.0)
   const [pitch, setPitch] = useState(1.0)
   const [volume, setVolume] = useState(1.0)
   const [showSettings, setShowSettings] = useState(false)
+  
   const [currentProgress, setCurrentProgress] = useState({
     currentWord: '',
     currentIndex: 0,
     totalWords: 0,
     progress: 0
   })
+  
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [readMode, setReadMode] = useState(false)
   
-  // Dictionary feature state
   const [selectedWord, setSelectedWord] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
-  const [readMode, setReadMode] = useState(false)
+  
+  const [sentimentAnalysis, setSentimentAnalysis] = useState(null)
+  const [showSentiment, setShowSentiment] = useState(false)
+  
+  const { enabled: bionicEnabled, intensity, toggleBionic, setIntensity } = useBionic()
   
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
   const displayRef = useRef(null)
-
-  // State for sentiment
-  const [sentimentAnalysis, setSentimentAnalysis] = useState(null);
-  const [showSentiment, setShowSentiment] = useState(false);
-
-  const navigate = useNavigate()
 
   useEffect(() => {
     const loadVoices = () => {
@@ -57,7 +62,6 @@ const TextToSpeech = () => {
     }
 
     loadVoices()
-    
     const intervals = [100, 500, 1000, 2000].map(delay => 
       setTimeout(loadVoices, delay)
     )
@@ -65,35 +69,30 @@ const TextToSpeech = () => {
     return () => intervals.forEach(clearTimeout)
   }, [selectedVoice])
 
-  // After your existing state declarations, add:
   useEffect(() => {
-    // Check if text was sent from another page
     const incomingText = localStorage.getItem('tts-text')
     if (incomingText) {
       setText(incomingText)
       setReadMode(false)
-      localStorage.removeItem('tts-text') // Clear after use
-      setSuccess('Text loaded from Summarize! Ready to listen.')
+      localStorage.removeItem('tts-text')
+      setSuccess('Text loaded! Ready to listen.')
       setTimeout(() => setSuccess(''), 3000)
     }
   }, [])
 
-
-  // Add function to analyze sentiment
   const handleAnalyzeSentiment = () => {
     if (!text.trim()) {
-      setError('Please enter some text to analyze');
-      return;
+      setError('Please enter some text to analyze')
+      return
     }
 
-    const analysis = sentimentService.getSummary(text);
-    setSentimentAnalysis(analysis);
-    setShowSentiment(true);
-    setSuccess('Sentiment analysis complete!');
-    setTimeout(() => setSuccess(''), 3000);
-  };
+    const analysis = sentimentService.getSummary(text)
+    setSentimentAnalysis(analysis)
+    setShowSentiment(true)
+    setSuccess('Sentiment analysis complete!')
+    setTimeout(() => setSuccess(''), 3000)
+  }
 
-  // Word click handler for dictionary
   const handleWordClick = (event) => {
     if (isPlaying) return
     
@@ -133,7 +132,7 @@ const TextToSpeech = () => {
           setIsPlaying(true)
           setIsPaused(false)
           setLoading(false)
-          setReadMode(false) // Disable read mode when playing
+          setReadMode(false)
           setCurrentProgress({ currentWord: '', currentIndex: 0, totalWords: text.split(' ').length, progress: 0 })
         },
         onProgress: (progress) => {
@@ -188,27 +187,25 @@ const TextToSpeech = () => {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0]
-    if (file) {
-      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const content = e.target.result
-          if (content.length > 10000) {
-            setError('File is too large. Please use files under 10,000 characters.')
-            return
-          }
-          setText(content)
-          setError('')
-          setSuccess('File uploaded successfully!')
-          setTimeout(() => setSuccess(''), 3000)
+    if (file && (file.type === 'text/plain' || file.name.endsWith('.txt'))) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target.result
+        if (content.length > 10000) {
+          setError('File is too large. Please use files under 10,000 characters.')
+          return
         }
-        reader.onerror = () => {
-          setError('Error reading file. Please try again.')
-        }
-        reader.readAsText(file)
-      } else {
-        setError('Please upload a valid text file (.txt)')
+        setText(content)
+        setError('')
+        setSuccess('File uploaded successfully!')
+        setTimeout(() => setSuccess(''), 3000)
       }
+      reader.onerror = () => {
+        setError('Error reading file. Please try again.')
+      }
+      reader.readAsText(file)
+    } else {
+      setError('Please upload a valid text file (.txt)')
     }
   }
 
@@ -223,7 +220,7 @@ const TextToSpeech = () => {
       setSuccess('Text copied to clipboard!')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError('Failed to copy text. Please try selecting and copying manually.')
+      setError('Failed to copy text')
     }
   }
 
@@ -307,7 +304,6 @@ const TextToSpeech = () => {
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl mb-4">
             <Volume2 className="h-8 w-8 text-white" />
@@ -320,7 +316,6 @@ const TextToSpeech = () => {
           </p>
         </div>
 
-        {/* Status Messages */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-3">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
@@ -335,9 +330,7 @@ const TextToSpeech = () => {
           </div>
         )}
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Text Input */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-4">
@@ -372,7 +365,6 @@ const TextToSpeech = () => {
                   >
                     <Heart className="h-4 w-4" />
                   </button>
-
                   <button
                     onClick={() => {
                       if (text.trim()) {
@@ -386,20 +378,19 @@ const TextToSpeech = () => {
                   >
                     <Brain className="h-4 w-4" />
                   </button>
-
-
                   <button
                     onClick={() => {
-                      localStorage.setItem('summarize-text', text)
-                      navigate('/summarize')
+                      if (text.trim()) {
+                        localStorage.setItem('summarize-text', text)
+                        navigate('/summarize')
+                      }
                     }}
                     disabled={!text.trim()}
                     className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Summarize this text"
                   >
-                    <Zap className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                   </button>
-
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
@@ -423,25 +414,18 @@ const TextToSpeech = () => {
                   >
                     <RotateCcw className="h-4 w-4" />
                   </button>
-
-                  <button
-                    onClick={() => {
-                      if (text.trim()) {
-                        localStorage.setItem('summarize-text', text)
-                        navigate('/summarize')
-                      }
-                    }}
-                    disabled={!text.trim()}
-                    className="p-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Summarize this text"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </button>
-
                 </div>
               </div>
+
+              <div className="mb-4">
+                <BionicToggle
+                  enabled={bionicEnabled}
+                  onToggle={toggleBionic}
+                  intensity={intensity}
+                  onIntensityChange={setIntensity}
+                />
+              </div>
               
-              {/* Edit Mode - Textarea */}
               {!readMode && !isPlaying && (
                 <textarea
                   ref={textareaRef}
@@ -457,7 +441,6 @@ const TextToSpeech = () => {
                 />
               )}
 
-              {/* Read Mode - Clickable Text */}
               {readMode && !isPlaying && (
                 <div
                   ref={displayRef}
@@ -469,13 +452,20 @@ const TextToSpeech = () => {
                     wordWrap: 'break-word'
                   }}
                 >
-                  {text ? renderClickableText() : (
+                  {text ? (
+                    bionicEnabled ? (
+                      <div style={{ fontWeight: 'normal' }}>
+                        <BionicText text={text} intensity={intensity} />
+                      </div>
+                    ) : (
+                      renderClickableText()
+                    )
+                  ) : (
                     <span className="text-gray-400">No text entered yet. Switch to Edit Mode to add text.</span>
                   )}
                 </div>
               )}
 
-              {/* Playing Mode - Highlighted Text */}
               {isPlaying && (
                 <div
                   className="w-full h-64 p-4 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] dyslexia-text overflow-y-auto"
@@ -502,6 +492,7 @@ const TextToSpeech = () => {
               <div className="flex items-center justify-between mt-2">
                 <p className="text-xs text-[var(--text-secondary)] dyslexia-text">
                   {isPlaying ? '▶️ Playing...' : readMode ? '📖 Read mode - Click words for definitions' : '✏️ Edit mode - Type or paste text'}
+                  {bionicEnabled && ' ⚡ Bionic mode active'}
                 </p>
                 <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
                   {text.length}/5000 characters
@@ -512,7 +503,6 @@ const TextToSpeech = () => {
                 Estimated time: {Math.ceil(text.split(' ').length / (rate * 150))} min
               </div>
 
-              {/* Progress Bar */}
               {isPlaying && currentProgress.totalWords > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
@@ -540,7 +530,6 @@ const TextToSpeech = () => {
               )}
             </div>
 
-            {/* Sentiment Analysis Display */}
             {showSentiment && sentimentAnalysis && (
               <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
                 <div className="flex items-center justify-between mb-4">
@@ -558,7 +547,6 @@ const TextToSpeech = () => {
               </div>
             )}
 
-            {/* Sample Texts */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-4">
                 Try Sample Texts
@@ -586,9 +574,7 @@ const TextToSpeech = () => {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="space-y-6">
-            {/* Playback Controls */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-4">
                 Playback Controls
@@ -627,7 +613,6 @@ const TextToSpeech = () => {
               </div>
             </div>
 
-            {/* Voice Settings */}
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text">
@@ -642,7 +627,6 @@ const TextToSpeech = () => {
               </div>
 
               <div className="space-y-4">
-                {/* Voice Selection */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
                     Voice ({voices.length} available)
@@ -671,7 +655,6 @@ const TextToSpeech = () => {
 
                 {showSettings && (
                   <div className="space-y-4 border-t border-[var(--border-color)] pt-4">
-                    {/* Speed */}
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
                         Speed: {rate.toFixed(1)}x
@@ -683,7 +666,7 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={rate}
                         onChange={(e) => setRate(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                       />
                       <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
                         <span>Slow</span>
@@ -691,7 +674,6 @@ const TextToSpeech = () => {
                       </div>
                     </div>
 
-                    {/* Pitch */}
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
                         Pitch: {pitch.toFixed(1)}
@@ -703,7 +685,7 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={pitch}
                         onChange={(e) => setPitch(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                       />
                       <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
                         <span>Low</span>
@@ -711,7 +693,6 @@ const TextToSpeech = () => {
                       </div>
                     </div>
 
-                    {/* Volume */}
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-primary)] dyslexia-text mb-2">
                         Volume: {Math.round(volume * 100)}%
@@ -723,7 +704,7 @@ const TextToSpeech = () => {
                         step="0.1"
                         value={volume}
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                       />
                       <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
                         <span>Quiet</span>
@@ -738,7 +719,6 @@ const TextToSpeech = () => {
         </div>
       </div>
 
-      {/* Word Tooltip */}
       {selectedWord && (
         <WordTooltip
           word={selectedWord}

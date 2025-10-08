@@ -1,26 +1,8 @@
 /* client/src/index.css */
-/* OpenDyslexic Font from working CDN */
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.woff2') format('woff2'),
-       url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.woff2') format('woff2'),
-       url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.woff') format('woff');
-  font-weight: bold;
-  font-style: normal;
-}
-
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 :root {
   /* Light mode colors */
@@ -355,3 +337,29 @@ input:focus, textarea:focus, select:focus {
 .focus-mode .upcoming-word {
   opacity: 0.4;
 }
+
+/* Bionic Reading - Force bold to be BOLD */
+strong {
+  font-weight: 900 !important;
+}
+
+.bionic-normal {
+  font-weight: 400 !important;
+}
+
+.dyslexia-text strong {
+  font-weight: 900 !important;
+  color: inherit;
+}
+
+/* Force bold to work in Bionic Reading */
+b, strong {
+  font-weight: 900 !important;
+}
+
+.dyslexia-text b,
+.dyslexia-text strong {
+  font-weight: 900 !important;
+  color: inherit !important;
+}
+

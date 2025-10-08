@@ -1,30 +1,42 @@
-// client/src/pages/FocusMode.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Focus, Play, Pause, Square, Settings as SettingsIcon, X, ArrowLeft, FileText, Volume2, Brain } from 'lucide-react'
 import { useUser } from '../context/UserContext.jsx'
 import { useNavigate } from 'react-router-dom'
 import WordTooltip from '../components/WordTooltip'
+import { useBionic } from '../context/BionicContext'
+import BionicText from '../components/BionicText'
+import BionicToggle from '../components/BionicToggle'
+
 
 const FocusMode = () => {
   const { settings, saveReadingProgress } = useUser()
   const navigate = useNavigate()
+  
+  // Text and playback state
   const [text, setText] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [words, setWords] = useState([])
+  
+  // Settings
   const [showSettings, setShowSettings] = useState(false)
   const [speed, setSpeed] = useState(settings?.focusModeSpeed || 200)
   const [pauseTime, setPauseTime] = useState(settings?.focusPauseTime || 500)
   const [wordByWord, setWordByWord] = useState(settings?.focusWordByWord || false)
-  const intervalRef = useRef(null)
-  const startTimeRef = useRef(null)
   
-  // Dictionary feature state
+  // Dictionary feature
   const [selectedWord, setSelectedWord] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const [readMode, setReadMode] = useState(false)
+  
+  // Bionic reading
+  const { enabled: bionicEnabled, intensity, toggleBionic, setIntensity } = useBionic()
+  
+  // Refs
+  const intervalRef = useRef(null)
+  const startTimeRef = useRef(null)
 
   // Cleanup on unmount
   useEffect(() => {
@@ -120,7 +132,7 @@ const FocusMode = () => {
     setIsPlaying(false)
     setIsPaused(false)
 
-    // Save reading progress (fail silently)
+    // Save reading progress
     if (startTimeRef.current && currentIndex > 0) {
       try {
         const duration = Date.now() - startTimeRef.current
@@ -139,7 +151,7 @@ const FocusMode = () => {
     setCurrentIndex(0)
   }
 
-  // Render clickable words when paused
+  // Render clickable words when paused (with Bionic support)
   const getDisplayTextClickable = () => {
     if (words.length === 0) return ''
 
@@ -155,7 +167,11 @@ const FocusMode = () => {
             borderRadius: '8px'
           }}
         >
-          {currentWord}
+          {bionicEnabled ? (
+            <BionicText text={currentWord} intensity={intensity} />
+          ) : (
+            currentWord
+          )}
         </span>
       )
     } else {
@@ -190,23 +206,35 @@ const FocusMode = () => {
             style={style}
             onClick={handleWordClick}
           >
-            {word}{' '}
+            {bionicEnabled ? (
+              <BionicText text={word} intensity={intensity} />
+            ) : (
+              word
+            )}{' '}
           </span>
         )
       })
     }
   }
 
+  // Render text when playing (with Bionic support)
   const getDisplayText = () => {
     if (words.length === 0) return ''
 
     if (wordByWord) {
-      return words[currentIndex] || ''
+      const currentWord = words[currentIndex] || ''
+      return bionicEnabled ? (
+        <BionicText text={currentWord} intensity={intensity} />
+      ) : (
+        currentWord
+      )
     } else {
       const wordsPerLine = 5
       const startIdx = Math.max(0, currentIndex - 2)
       const endIdx = Math.min(words.length, startIdx + wordsPerLine)
-      return words.slice(startIdx, endIdx).map((word, idx) => {
+      
+      const displayWords = words.slice(startIdx, endIdx)
+      const displayText = displayWords.map((word, idx) => {
         const wordIdx = startIdx + idx
         if (wordIdx === currentIndex) {
           return `<span class="current-word">${word}</span>`
@@ -216,11 +244,17 @@ const FocusMode = () => {
           return `<span class="upcoming-word">${word}</span>`
         }
       }).join(' ')
+
+      return displayText
     }
   }
 
   const renderClickableText = () => {
     if (!text) return null
+    
+    if (bionicEnabled) {
+      return <BionicText text={text} intensity={intensity} />
+    }
     
     return text.split(/(\s+)/).map((part, idx) => {
       if (part.trim()) {
@@ -313,7 +347,7 @@ const FocusMode = () => {
                     step="25"
                     value={speed}
                     onChange={(e) => setSpeed(parseInt(e.target.value))}
-                    className="w-full"
+                    className="w-full accent-purple-500"
                   />
                 </div>
 
@@ -328,7 +362,7 @@ const FocusMode = () => {
                     step="100"
                     value={pauseTime}
                     onChange={(e) => setPauseTime(parseInt(e.target.value))}
-                    className="w-full"
+                    className="w-full accent-purple-500"
                   />
                 </div>
 
@@ -383,7 +417,6 @@ const FocusMode = () => {
                     </button>
                   )}
                   
-                  {/* NEW: Cross-feature buttons */}
                   <button
                     onClick={() => {
                       if (text.trim()) {
@@ -411,7 +444,31 @@ const FocusMode = () => {
                   >
                     <Volume2 className="h-4 w-4" />
                   </button>
+
+                  <button
+                    onClick={() => {
+                      if (text.trim()) {
+                        localStorage.setItem('quiz-text', text)
+                        navigate('/quiz')
+                      }
+                    }}
+                    disabled={!text.trim()}
+                    className="p-2 bg-gray-700 text-gray-300 rounded-lg hover:text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Take quiz on this text"
+                  >
+                    <Brain className="h-4 w-4" />
+                  </button>
                 </div>
+              </div>
+
+              {/* Bionic Toggle */}
+              <div className="mb-4">
+                <BionicToggle
+                  enabled={bionicEnabled}
+                  onToggle={toggleBionic}
+                  intensity={intensity}
+                  onIntensityChange={setIntensity}
+                />
               </div>
               
               {/* Edit Mode - Textarea */}
@@ -428,7 +485,7 @@ const FocusMode = () => {
                 />
               )}
 
-              {/* Read Mode - Clickable Text */}
+              {/* Read Mode - Clickable Text with Bionic */}
               {readMode && (
                 <div
                   className="w-full h-48 p-4 bg-gray-900 border border-gray-700 rounded-lg text-white dyslexia-text overflow-y-auto"
@@ -447,7 +504,9 @@ const FocusMode = () => {
 
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-400 dyslexia-text">
-                  {readMode ? '📖 Read mode - Click words for definitions' : '✏️ Edit mode - Type or paste text'} • {text.split(' ').filter(w => w.trim()).length} words
+                  {readMode ? '📖 Read mode - Click words for definitions' : '✏️ Edit mode - Type or paste text'}
+                  {bionicEnabled && ' ⚡ Bionic mode active'}
+                   • {text.split(' ').filter(w => w.trim()).length} words
                 </span>
                 <button
                   onClick={handleStart}
@@ -457,21 +516,6 @@ const FocusMode = () => {
                   <Play className="h-5 w-5 mr-2" />
                   Start Focus Reading
                 </button>
-
-                <button
-                  onClick={() => {
-                    if (text.trim()) {
-                      localStorage.setItem('quiz-text', text)
-                      navigate('/quiz')
-                    }
-                  }}
-                  disabled={!text.trim()}
-                  className="p-2 bg-gray-700 text-gray-300 rounded-lg hover:text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Take quiz on this text"
-                >
-                  <Brain className="h-4 w-4" />
-                </button>
-
               </div>
             </div>
 
@@ -516,7 +560,7 @@ const FocusMode = () => {
                     Progress: {currentIndex + 1} / {words.length}
                   </span>
                   <span className="text-sm text-gray-400 dyslexia-text">
-                    {Math.round(progress)}%
+                    {Math.round(progress)}% {bionicEnabled && '⚡'}
                   </span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-2">
@@ -529,7 +573,7 @@ const FocusMode = () => {
 
               {/* Word Display */}
               <div className="bg-gray-800 rounded-2xl p-12 border border-gray-700 min-h-[300px] flex items-center justify-center">
-                {/* PAUSED - Clickable words */}
+                {/* PAUSED - Clickable words with Bionic */}
                 {isPaused && (
                   <div
                     className="text-4xl md:text-6xl font-bold text-center dyslexia-text"
@@ -542,7 +586,7 @@ const FocusMode = () => {
                   </div>
                 )}
 
-                {/* PLAYING - Non-clickable animated words */}
+                {/* PLAYING - Animated words with Bionic */}
                 {isPlaying && !isPaused && (
                   <div
                     className="text-4xl md:text-6xl font-bold text-center dyslexia-text"
@@ -550,8 +594,13 @@ const FocusMode = () => {
                       lineHeight: '1.6',
                       letterSpacing: '0.05em'
                     }}
-                    dangerouslySetInnerHTML={{ __html: getDisplayText() }}
-                  />
+                  >
+                    {typeof getDisplayText() === 'string' ? (
+                      <div dangerouslySetInnerHTML={{ __html: getDisplayText() }} />
+                    ) : (
+                      getDisplayText()
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -560,6 +609,7 @@ const FocusMode = () => {
                 <div className="text-center mt-4">
                   <p className="text-sm text-yellow-400 dyslexia-text">
                     ✨ Click any word to see its definition
+                    {bionicEnabled && ' • ⚡ Bionic mode active'}
                   </p>
                 </div>
               )}
@@ -596,6 +646,7 @@ const FocusMode = () => {
               <div className="text-center mt-4">
                 <span className="text-sm text-gray-400 dyslexia-text">
                   {isPaused ? '⏸️ Paused - Click words for definitions' : '▶️ Reading...'}
+                  {bionicEnabled && ' ⚡'}
                 </span>
               </div>
             </div>
