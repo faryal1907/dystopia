@@ -6,6 +6,7 @@ VOXA is a comprehensive accessibility-focused reading platform designed for indi
 
 ---
 
+<<<<<<< Updated upstream
 ## 🌟 Complete Feature Set
 
 ### 🎯 **7 Core Features**
@@ -109,6 +110,14 @@ VOXA is a comprehensive accessibility-focused reading platform designed for indi
 - **Progress Analytics** - Charts and insights
 
 ---
+=======
+### User Features
+- **User Dashboard**: Personalized reading statistics and progress tracking
+- **Achievement System**: Gamified learni4ng with rewards and milestones
+- **Reading Streaks**: Daily reading goal tracking and motivation
+- **Settings Customization**: Extensive personalization options for optimal reading experience
+- **Theme Support**: Dark mode, high contrast, and sepia themes
+>>>>>>> Stashed changes
 
 ## 🛠 Tech Stack
 
