@@ -12,6 +12,9 @@ import dictionaryRoutes from './routes/dictionaryRoutes.js';
 import summarizationRoutes from './routes/summarizationRoutes.js';
 
 dotenv.config()
+import 'dotenv/config';
+
+
 
 const app = express()
 const PORT = process.env.PORT || 5000

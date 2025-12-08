@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const HUGGINGFACE_API_URL = 'https://huggingface.co/api/models';
+const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models/facebook/bart-large-cnn';
 const API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 // Cache for summarization results

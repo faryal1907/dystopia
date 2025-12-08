@@ -1,81 +1,35 @@
 import express from 'express';
-import { summarizationService } from '../services/summarizationService.js';
-
+import axios from 'axios';
 const router = express.Router();
 
-// Logging middleware
-router.use((req, res, next) => {
-  console.log(`[Summarization Route] ${req.method} ${req.path}`);
-  next();
-});
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY; // keep your key secret
+const HUGGINGFACE_API = 'https://api-inference.huggingface.co/models/facebook/bart-large-cnn';
 
-// Summarize text
-router.post('/summarize', async (req, res) => {
-  try {
-    const { text, options } = req.body;
-
-    if (!text) {
-      return res.status(400).json({
-        success: false,
-        error: 'Text is required'
-      });
-    }
-
-    console.log(`[Summarization] Request for ${text.split(/\s+/).length} words`);
-
-    const result = await summarizationService.summarizeText(text, options);
-    
-    if (result.success) {
-      res.json(result);
-    } else if (result.loading) {
-      res.status(503).json(result); // Service Unavailable
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Summarization] Route error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+router.post('/', async (req, res) => {
+  const { text, maxLength } = req.body;
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({ error: 'No text provided.' });
   }
-});
 
-// Get summary statistics
-router.post('/stats', async (req, res) => {
   try {
-    const { originalText, summaryText } = req.body;
+    const response = await axios.post(
+      HUGGINGFACE_API,
+      { inputs: text, parameters: { max_new_tokens: maxLength || 130 } },
+      { headers: { Authorization: `Bearer ${HF_API_KEY}` } }
+    );
 
-    if (!originalText || !summaryText) {
-      return res.status(400).json({
-        success: false,
-        error: 'Both original and summary text are required'
-      });
-    }
+    const summary =
+      Array.isArray(response.data) && response.data[0]?.summary_text
+        ? response.data[0].summary_text
+        : response.data.summary_text;
 
-    const stats = summarizationService.getSummaryStats(originalText, summaryText);
-    
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (error) {
-    console.error('[Summarization] Stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to calculate statistics'
-    });
+    if (!summary) throw new Error('Unexpected response from Hugging Face API');
+
+    res.json({ summary });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to summarize text. Try again.' });
   }
-});
-
-// Health check
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'summarization',
-    model: 'facebook/bart-large-cnn',
-    provider: 'Hugging Face'
-  });
 });
 
 export default router;

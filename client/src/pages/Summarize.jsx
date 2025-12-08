@@ -553,4 +553,4 @@ const Summarize = () => {
   )
 }
 
-export default Summarize
+export default Summarize;
