@@ -161,7 +161,7 @@ export const translateText = async (text, targetLanguage) => {
       params: {
         q: text,
         langpair: `${sourceCode}|${targetCode}`,
-        de: process.env.MYMEMORY_EMAIL || 'voxa.translation@gmail.com',
+        de: process.env.MYMEMORY_EMAIL || 'dystopia.translation@gmail.com',
       },
       timeout: 10000,
     });

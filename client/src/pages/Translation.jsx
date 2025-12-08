@@ -23,7 +23,7 @@ import { goalsService } from '../services/goalsService'
 // Safe settings hook with fallback
 const useSettingsSafe = () => {
   try {
-    const stored = localStorage.getItem('voxa-settings');
+    const stored = localStorage.getItem('dystopia-settings');
     return stored ? JSON.parse(stored) : { preferredTranslationLanguage: 'es', autoTranslate: false };
   } catch {
     return { preferredTranslationLanguage: 'es', autoTranslate: false };

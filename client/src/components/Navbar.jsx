@@ -119,7 +119,7 @@ const Navbar = () => {
             </motion.div>
             <div className="flex flex-col">
               <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent dyslexia-text">
-                VOXA
+                DYSTOPIA
               </span>
               <span className="text-[9px] text-[var(--text-secondary)] -mt-1 tracking-wider">
                 AI Reading Assistant

@@ -1,12 +1,11 @@
-# VOXA - AI-Powered Accessible Reading Platform
+# DYSTOPIA - AI-Powered Accessible Reading Platform
 
 > Making reading inclusive, accessible, and empowering for everyone through AI and machine learning.
 
-VOXA is a comprehensive accessibility-focused reading platform designed for individuals with dyslexia and reading difficulties. It provides advanced AI features including text-to-speech, real-time translation, comprehension testing, and speed reading training to make reading more accessible and enjoyable.
+DYSTOPIA is a comprehensive accessibility-focused reading platform designed for individuals with dyslexia and reading difficulties. It provides advanced AI features including text-to-speech, real-time translation, comprehension testing, and speed reading training to make reading more accessible and enjoyable.
 
 ---
 
-<<<<<<< Updated upstream
 ## 🌟 Complete Feature Set
 
 ### 🎯 **7 Core Features**
@@ -110,14 +109,6 @@ VOXA is a comprehensive accessibility-focused reading platform designed for indi
 - **Progress Analytics** - Charts and insights
 
 ---
-=======
-### User Features
-- **User Dashboard**: Personalized reading statistics and progress tracking
-- **Achievement System**: Gamified learni4ng with rewards and milestones
-- **Reading Streaks**: Daily reading goal tracking and motivation
-- **Settings Customization**: Extensive personalization options for optimal reading experience
-- **Theme Support**: Dark mode, high contrast, and sepia themes
->>>>>>> Stashed changes
 
 ## 🛠 Tech Stack
 
@@ -152,7 +143,7 @@ VOXA is a comprehensive accessibility-focused reading platform designed for indi
 
 ## 📁 Project Structure
 
-voxa/
+dystopia/
 ├── client/ # React frontend
 │ ├── src/
 │ │ ├── components/ # Reusable components
@@ -209,8 +200,8 @@ text
 ### Installation
 
 1. **Clone repository**
-git clone https://github.com/yourusername/voxa.git
-cd voxa
+git clone https://github.com/faryal1907/dystopia.git
+cd dystopia
 
 text
 
@@ -228,7 +219,7 @@ text
 3. **Environment Variables**
 
 **Server `.env`:**
-MONGODB_URI=mongodb://localhost:27017/voxa
+MONGODB_URI=mongodb://localhost:27017/dystopia
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_key
@@ -402,9 +393,9 @@ MIT License - See LICENSE file
 
 ---
 
-## 💡 Why VOXA?
+## 💡 Why DYSTOPIA?
 
-**700 million people worldwide** struggle with dyslexia. VOXA addresses this by:
+**700 million people worldwide** struggle with dyslexia. DYSTOPIA addresses this by:
 
 ✨ Making reading accessible  
 ✨ Breaking language barriers  
@@ -418,7 +409,7 @@ MIT License - See LICENSE file
 
 **Made with ❤️ for accessibility and inclusive learning.**
 
-*VOXA - Empowering everyone to read, learn, and grow.*
+*DSYTOPIA - Empowering everyone to read, learn, and grow.*
 
 ---
 

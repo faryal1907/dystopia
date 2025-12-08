@@ -61,7 +61,8 @@ export const UserProvider = ({ children }) => {
 
   // Load settings from localStorage immediately
   useEffect(() => {
-    const savedSettings = localStorage.getItem(`voxa-settings-${user?.id || 'guest'}`)
+    const savedSettings = localStorage.getItem(`dystopia
+      -settings-${user?.id || 'guest'}`)
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings)
@@ -119,7 +120,7 @@ export const UserProvider = ({ children }) => {
               if (data && Object.keys(data).length > 0) {
                 setSettings(prev => ({ ...prev, ...data }))
                 // Save to localStorage
-                localStorage.setItem(`voxa-settings-${user.id}`, JSON.stringify(data))
+                localStorage.setItem(`dystopia-settings-${user.id}`, JSON.stringify(data))
                 applySettingsToDocument(data)
               }
               updateLastFetch('settings')
@@ -203,7 +204,7 @@ export const UserProvider = ({ children }) => {
       setSettings(updatedSettings)
 
       // Save to localStorage immediately
-      localStorage.setItem(`voxa-settings-${user.id}`, JSON.stringify(updatedSettings))
+      localStorage.setItem(`dystopia-settings-${user.id}`, JSON.stringify(updatedSettings))
 
       // Apply settings immediately
       applySettingsToDocument(updatedSettings)
@@ -336,8 +337,8 @@ export const UserProvider = ({ children }) => {
       .then(() => {
         console.log('Progress synced to server')
         // Clear cache to force fresh data on next fetch
-        localStorage.removeItem(`voxa-cache-progress-${user.id}`)
-        localStorage.removeItem(`voxa-cache-stats-${user.id}`)
+        localStorage.removeItem(`dystopia-cache-progress-${user.id}`)
+        localStorage.removeItem(`dystopia-cache-stats-${user.id}`)
       })
       .catch(error => {
         console.error('Error saving progress to server:', error)

@@ -2,8 +2,8 @@
  * Goals Service - Reading goals, challenges, and habit tracking
  */
 
-const STORAGE_KEY = 'voxa-reading-goals'
-const CHALLENGES_KEY = 'voxa-challenges'
+const STORAGE_KEY = 'dystopia-reading-goals'
+const CHALLENGES_KEY = 'dystopia-challenges'
 
 export const goalsService = {
   /**

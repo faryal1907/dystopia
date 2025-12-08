@@ -84,7 +84,7 @@ const Login = () => {
             Welcome Back
           </h2>
           <p className="mt-2 text-center text-[var(--text-secondary)] dyslexia-text">
-            Sign in to your VOXA account
+            Sign in to your DYSTOPIA account
           </p>
         </div>
         

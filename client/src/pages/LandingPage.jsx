@@ -176,7 +176,7 @@ const LandingPage = () => {
       name: 'Sarah Johnson',
       role: 'Student',
       image: '👩‍🎓',
-      content: 'VOXA transformed my reading experience! The AI summarization saves hours, and the speed reading trainer improved my WPM by 150%.',
+      content: 'DYSTOPIA transformed my reading experience! The AI summarization saves hours, and the speed reading trainer improved my WPM by 150%.',
       rating: 5,
       highlight: 'Speed Reading'
     },
@@ -184,7 +184,7 @@ const LandingPage = () => {
       name: 'Michael Chen',
       role: 'Teacher',
       image: '👨‍🏫',
-      content: 'I recommend VOXA to all my students with reading difficulties. The comprehension quizzes and analytics help track real progress.',
+      content: 'I recommend DYSTOPIA to all my students with reading difficulties. The comprehension quizzes and analytics help track real progress.',
       rating: 5,
       highlight: 'Quiz & Analytics'
     },
@@ -462,7 +462,7 @@ const LandingPage = () => {
                 Built for Everyone
               </h2>
               <p className="text-xl text-[var(--text-secondary)] mb-8 dyslexia-text leading-relaxed">
-                VOXA isn't just accessible – it's designed from the ground up with dyslexia-friendly features, 
+                DYSTOPIA isn't just accessible – it's designed from the ground up with dyslexia-friendly features, 
                 high contrast themes, and AI that adapts to your unique needs.
               </p>
               
@@ -618,7 +618,7 @@ const LandingPage = () => {
               Ready to Transform Your Reading?
             </h2>
             <p className="text-xl lg:text-2xl text-purple-100 mb-10 dyslexia-text leading-relaxed max-w-3xl mx-auto">
-              Join thousands using VOXA to read faster, comprehend better, and enjoy every word.
+              Join thousands using DYSTOPIA to read faster, comprehend better, and enjoy every word.
               <span className="font-semibold"> Completely free, forever.</span>
             </p>
             

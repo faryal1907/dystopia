@@ -37,9 +37,9 @@ const Footer = () => {
   ]
 
   const socialLinks = [
-    { name: 'GitHub', icon: Github, href: 'https://github.com/voxa' },
-    { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/voxa' },
-    { name: 'Email', icon: Mail, href: 'mailto:support@voxa.com' },
+    { name: 'GitHub', icon: Github, href: 'https://github.com/dystopia' },
+    { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/dystopia' },
+    { name: 'Email', icon: Mail, href: 'mailto:support@dystopia.com' },
   ]
 
   return (
@@ -53,7 +53,7 @@ const Footer = () => {
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold dyslexia-text text-[var(--text-primary)]">
-                VOXA
+                DYSTOPIA
               </span>
             </Link>
             <p className="text-[var(--text-secondary)] dyslexia-text mb-4 leading-relaxed">
@@ -102,7 +102,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-8 border-t border-[var(--border-color)] flex flex-col md:flex-row justify-between items-center">
           <p className="text-[var(--text-secondary)] dyslexia-text">
-            © {currentYear} VOXA. All rights reserved.
+            © {currentYear} DYSTOPIA. All rights reserved.
           </p>
           <div className="flex items-center mt-4 md:mt-0">
             <span className="text-[var(--text-secondary)] dyslexia-text mr-2">

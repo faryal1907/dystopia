@@ -91,10 +91,10 @@ const Register = () => {
             <BookOpen className="h-8 w-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] dyslexia-text">
-            Welcome to VOXA!
+            Welcome to DYSTOPIA!
           </h2>
           <p className="text-[var(--text-secondary)] dyslexia-text leading-relaxed">
-            Your account has been created successfully. You can now access all VOXA features.
+            Your account has been created successfully. You can now access all DYSTOPIA features.
           </p>
           <Link
             to="/dashboard"
@@ -122,7 +122,7 @@ const Register = () => {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold text-[var(--text-primary)] dyslexia-text">
-            Join VOXA
+            Join DYSTOPIA
           </h2>
           <p className="mt-2 text-center text-[var(--text-secondary)] dyslexia-text">
             Create your account and start reading better

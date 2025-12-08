@@ -123,7 +123,7 @@ export const analyticsService = {
         type: 'activity',
         icon: '🔥',
         title: 'Power User',
-        message: `${stats.totalSessions} sessions! You're a VOXA champion!`,
+        message: `${stats.totalSessions} sessions! You're a DYSTOPIA champion!`,
         color: 'red'
       })
     }

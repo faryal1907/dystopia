@@ -82,7 +82,7 @@ export const SettingsProvider = ({ children }) => {
   }, [settings])
 
   const loadSettings = () => {
-    const savedSettings = localStorage.getItem('voxa-settings')
+    const savedSettings = localStorage.getItem('dystopia-settings')
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings)
@@ -96,7 +96,7 @@ export const SettingsProvider = ({ children }) => {
   const saveSettings = (newSettings) => {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
-    localStorage.setItem('voxa-settings', JSON.stringify(updatedSettings))
+    localStorage.setItem('dystopia-settings', JSON.stringify(updatedSettings))
     
     // Emit custom event so other components can react
     window.dispatchEvent(new CustomEvent('settingsUpdated', { 
@@ -193,7 +193,7 @@ export const SettingsProvider = ({ children }) => {
     }
 
     setSettings(defaultSettings)
-    localStorage.setItem('voxa-settings', JSON.stringify(defaultSettings))
+    localStorage.setItem('dystopia-settings', JSON.stringify(defaultSettings))
     
     // Emit custom event
     window.dispatchEvent(new CustomEvent('settingsUpdated', { 

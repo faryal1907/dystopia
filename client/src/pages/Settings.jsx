@@ -16,44 +16,44 @@ const Settings = () => {
   
   // Font settings
   const [fontSize, setFontSize] = useState(() => {
-    return parseInt(localStorage.getItem('voxa-font-size') || '16')
+    return parseInt(localStorage.getItem('dystopia-font-size') || '16')
   })
   
   const [fontFamily, setFontFamily] = useState(() => {
-    return localStorage.getItem('voxa-font-family') || 'system'
+    return localStorage.getItem('dystopia-font-family') || 'system'
   })
 
   // TTS settings
   const [ttsRate, setTtsRate] = useState(() => {
-    return parseFloat(localStorage.getItem('voxa-tts-rate') || '1.0')
+    return parseFloat(localStorage.getItem('dystopia-tts-rate') || '1.0')
   })
   
   const [ttsPitch, setTtsPitch] = useState(() => {
-    return parseFloat(localStorage.getItem('voxa-tts-pitch') || '1.0')
+    return parseFloat(localStorage.getItem('dystopia-tts-pitch') || '1.0')
   })
   
   const [ttsVolume, setTtsVolume] = useState(() => {
-    return parseFloat(localStorage.getItem('voxa-tts-volume') || '1.0')
+    return parseFloat(localStorage.getItem('dystopia-tts-volume') || '1.0')
   })
 
   // Notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('voxa-notifications') === 'true'
+    return localStorage.getItem('dystopia-notifications') === 'true'
   })
 
   const handleSave = () => {
     try {
       // Save font settings
-      localStorage.setItem('voxa-font-size', fontSize.toString())
-      localStorage.setItem('voxa-font-family', fontFamily)
+      localStorage.setItem('dystopia-font-size', fontSize.toString())
+      localStorage.setItem('dystopia-font-family', fontFamily)
       
       // Save TTS settings
-      localStorage.setItem('voxa-tts-rate', ttsRate.toString())
-      localStorage.setItem('voxa-tts-pitch', ttsPitch.toString())
-      localStorage.setItem('voxa-tts-volume', ttsVolume.toString())
+      localStorage.setItem('dystopia-tts-rate', ttsRate.toString())
+      localStorage.setItem('dystopia-tts-pitch', ttsPitch.toString())
+      localStorage.setItem('dystopia-tts-volume', ttsVolume.toString())
       
       // Save notification settings
-      localStorage.setItem('voxa-notifications', notificationsEnabled.toString())
+      localStorage.setItem('dystopia-notifications', notificationsEnabled.toString())
       
       // Apply font settings to root
       document.documentElement.style.fontSize = `${fontSize}px`
@@ -87,7 +87,7 @@ const Settings = () => {
             Settings
           </h1>
           <p className="text-[var(--text-secondary)] dyslexia-text">
-            Customize your VOXA experience
+            Customize your DYSTOPIA experience
           </p>
         </div>
 
@@ -168,7 +168,7 @@ const Settings = () => {
                 Appearance
               </h2>
               <p className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                Customize how VOXA looks
+                Customize how DYSTOPIA looks
               </p>
             </div>
           </div>

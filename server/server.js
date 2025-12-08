@@ -101,7 +101,7 @@ app.use('/api/', generalLimiter)
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
-    message: 'VOXA API is running',
+    message: 'DYSTOPIA API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
   })
@@ -164,7 +164,7 @@ process.on('SIGINT', () => {
 })
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 VOXA Server running on port ${PORT}`)
+  console.log(`🚀 DYSTOPIA Server running on port ${PORT}`)
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 CORS enabled for: ${process.env.NODE_ENV === 'production' ? 'production domains' : 'localhost:5173, localhost:5174, localhost:3000'}`)
   console.log(`⚡ Rate limiting: 1000 requests per 15 minutes`)

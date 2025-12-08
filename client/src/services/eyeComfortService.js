@@ -3,7 +3,7 @@
  * Every 20 minutes, look at something 20 feet away for 20 seconds
  */
 
-const STORAGE_KEY = 'voxa-eye-comfort-settings'
+const STORAGE_KEY = 'dystopia-eye-comfort-settings'
 
 class EyeComfortService {
   constructor() {
@@ -245,7 +245,7 @@ class EyeComfortService {
    * Get statistics
    */
   getStats() {
-    const statsKey = 'voxa-eye-comfort-stats'
+    const statsKey = 'dystopia-eye-comfort-stats'
     try {
       const saved = localStorage.getItem(statsKey)
       if (saved) {
@@ -275,7 +275,7 @@ class EyeComfortService {
     }
     
     stats.lastBreakDate = Date.now()
-    localStorage.setItem('voxa-eye-comfort-stats', JSON.stringify(stats))
+    localStorage.setItem('dystopia-eye-comfort-stats', JSON.stringify(stats))
   }
 }
 

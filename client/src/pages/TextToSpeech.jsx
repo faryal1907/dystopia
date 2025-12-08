@@ -265,12 +265,12 @@ const TextToSpeech = () => {
 
   const sampleTexts = [
     {
-      title: "Welcome to VOXA",
-      content: "VOXA is designed to make reading more accessible and enjoyable for everyone. Our text-to-speech feature uses advanced AI to provide natural-sounding voices that can help you consume content in a whole new way."
+      title: "Welcome to DYSTOPIA",
+      content: "DYSTOPIA is designed to make reading more accessible and enjoyable for everyone. Our text-to-speech feature uses advanced AI to provide natural-sounding voices that can help you consume content in a whole new way."
     },
     {
       title: "Reading Benefits",
-      content: "Regular reading improves vocabulary, enhances focus, reduces stress, and stimulates mental activity. With VOXA's accessibility features, everyone can enjoy these benefits regardless of reading challenges."
+      content: "Regular reading improves vocabulary, enhances focus, reduces stress, and stimulates mental activity. With DYSTOPIA's accessibility features, everyone can enjoy these benefits regardless of reading challenges."
     },
     {
       title: "Technology and Learning",

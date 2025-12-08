@@ -2,7 +2,7 @@
  * Collections Service - Manage saved texts and collections
  */
 
-const STORAGE_KEY = 'voxa-collections'
+const STORAGE_KEY = 'dystopia-collections'
 
 export const collectionsService = {
   /**
