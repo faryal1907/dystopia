@@ -293,9 +293,6 @@ const Summarize = () => {
                 <span className="text-sm text-[var(--text-secondary)] dyslexia-text">
                   {text.split(/\s+/).filter(w => w.trim()).length} words • {text.length}/10000 characters
                 </span>
-                <div className="text-sm text-[var(--text-secondary)] dyslexia-text">
-                  Est. reading time: {Math.ceil(text.split(/\s+/).length / 200)} min
-                </div>
               </div>
             </motion.div>
 

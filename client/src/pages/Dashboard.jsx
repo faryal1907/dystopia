@@ -192,13 +192,6 @@ const Dashboard = () => {
       color: 'text-blue-600'
     },
     {
-      label: 'Reading Time',
-      value: formatReadingTime(stats.totalReadingTime || 0),
-      icon: Clock,
-      change: '+8%',
-      color: 'text-green-600'
-    },
-    {
       label: 'Achievements',
       value: achievements?.length || 0,
       icon: Award,
