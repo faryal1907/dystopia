@@ -314,7 +314,7 @@ const FocusMode = () => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
                 <Focus className="h-5 w-5" />
               </div>
               <h1 className="text-xl font-bold dyslexia-text">Focus Mode</h1>
@@ -536,7 +536,7 @@ const FocusMode = () => {
                 <button
                   onClick={handleStart}
                   disabled={!text.trim()}
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dyslexia-text"
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dyslexia-text"
                 >
                   <Play className="h-5 w-5 mr-2" />
                   Start Focus Reading
@@ -590,7 +590,7 @@ const FocusMode = () => {
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-2">
                   <div
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>

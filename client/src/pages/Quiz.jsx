@@ -176,7 +176,7 @@ const Quiz = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl mb-4"
+            className="inline-flex p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mb-4"
           >
             <Brain className="h-8 w-8 text-white" />
           </motion.div>
@@ -250,7 +250,7 @@ const Quiz = () => {
                 <button
                   onClick={handleGenerateQuiz}
                   disabled={!text.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium dyslexia-text flex items-center space-x-2"
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium dyslexia-text flex items-center space-x-2"
                 >
                   <Zap className="h-5 w-5" />
                   <span>Generate Quiz</span>
@@ -350,7 +350,7 @@ const Quiz = () => {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all"
                         style={{ width: `${averageScore}%` }}
                       />
                     </div>
@@ -383,7 +383,7 @@ const Quiz = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800"
+              className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800"
             >
               <h3 className="text-lg font-semibold text-[var(--text-primary)] dyslexia-text mb-3 flex items-center">
                 <Target className="h-5 w-5 mr-2" />

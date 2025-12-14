@@ -146,7 +146,26 @@ app.use('*', (req, res) => {
   })
 })
 
-// Graceful shutdown
+// ... existing code ...
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    message: 'API endpoint not found',
+    path: req.originalUrl
+  })
+})
+
+// Start the server FIRST, then set up signal handlers
+const server = app.listen(PORT, () => {
+  console.log(`🚀 DYSTOPIA Server running on port ${PORT}`)
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
+  console.log(`🔒 CORS enabled for: ${process.env.NODE_ENV === 'production' ? 'production domains' : 'localhost:5173, localhost:5174, localhost:3000'}`)
+  console.log(`⚡ Rate limiting: 1000 requests per 15 minutes`)
+  console.log(`🌐 Translation API: http://localhost:${PORT}/api/translation`)
+})
+
+// Graceful shutdown handlers (AFTER server is defined)
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server')
   server.close(() => {
@@ -161,14 +180,6 @@ process.on('SIGINT', () => {
     console.log('HTTP server closed')
     process.exit(0)
   })
-})
-
-const server = app.listen(PORT, () => {
-  console.log(`🚀 DYSTOPIA Server running on port ${PORT}`)
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔒 CORS enabled for: ${process.env.NODE_ENV === 'production' ? 'production domains' : 'localhost:5173, localhost:5174, localhost:3000'}`)
-  console.log(`⚡ Rate limiting: 1000 requests per 15 minutes`)
-  console.log(`🌐 Translation API: http://localhost:${PORT}/api/translation`)
 })
 
 export default app

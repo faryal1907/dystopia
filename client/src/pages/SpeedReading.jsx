@@ -511,24 +511,24 @@ const SpeedReadingQuiz = ({ questions, onComplete }) => {
             const showWrong = showFeedback && isSelected && !isCorrectOption
 
             return (
-              <button
-                key={i}
-                onClick={() => !showFeedback && setSelected(i)}
-                disabled={showFeedback}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all dyslexia-text flex items-center justify-between ${
-                  showCorrect
-                    ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-300'
-                    : showWrong
-                    ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-300'
-                    : isSelected
-                    ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-500'
-                    : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-orange-500'
-                }`}
-              >
-                <span>{opt}</span>
-                {showCorrect && <CheckCircle className="h-5 w-5 flex-shrink-0" />}
-                {showWrong && <XCircle className="h-5 w-5 flex-shrink-0" />}
-              </button>
+            <button
+              key={i}
+              onClick={() => !showFeedback && setSelected(i)}
+              disabled={showFeedback}
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all dyslexia-text flex items-center justify-between ${
+                showCorrect
+                  ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-300'
+                  : showWrong
+                  ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-300'
+                  : isSelected
+                  ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-500 text-orange-900 dark:text-orange-100'
+                  : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-orange-500 text-gray-900 dark:text-gray-100'
+              }`}
+            >
+              <span className="text-[var(--text-primary)]">{opt}</span>
+              {showCorrect && <CheckCircle className="h-5 w-5 flex-shrink-0" />}
+              {showWrong && <XCircle className="h-5 w-5 flex-shrink-0" />}
+            </button>
             )
           })}
         </div>

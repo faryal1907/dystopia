@@ -3,11 +3,11 @@ import { motion } from 'framer-motion'
 
 const InsightCard = ({ insight, index }) => {
   const colorClasses = {
-    blue: 'from-blue-500 to-cyan-500 border-blue-300 dark:border-blue-700',
-    green: 'from-green-500 to-emerald-500 border-green-300 dark:border-green-700',
-    purple: 'from-purple-500 to-pink-500 border-purple-300 dark:border-purple-700',
-    orange: 'from-orange-500 to-amber-500 border-orange-300 dark:border-orange-700',
-    red: 'from-red-500 to-rose-500 border-red-300 dark:border-red-700'
+    blue: 'from-blue-500 to-blue-600 border-blue-300 dark:border-blue-700',
+    green: 'from-green-500 to-emerald-500 border-green-300 dark:border-green-700',  // Keep green as green
+    purple: 'from-purple-600 to-purple-700 border-purple-300 dark:border-purple-700',
+    orange: 'from-orange-500 to-orange-600 border-orange-300 dark:border-orange-700',
+    red: 'from-red-500 to-red-600 border-red-300 dark:border-red-700'
   }
 
   return (
