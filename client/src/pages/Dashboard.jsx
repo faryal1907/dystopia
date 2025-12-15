@@ -281,10 +281,10 @@ const Dashboard = () => {
         {/* AI Insights */}
         {insights.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
-              <Brain className="h-5 w-5 mr-2" />
-              AI-Powered Insights
-            </h2>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 text-left w-full">
+            <Brain className="h-5 w-5 mr-2 inline-block" />
+            <span className="inline-block">AI-Powered Insights</span>
+          </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {insights.map((insight, index) => (
                 <InsightCard key={insight.type} insight={insight} index={index} />
@@ -297,10 +297,10 @@ const Dashboard = () => {
         {weeklyActivity.length > 0 && (
           <div className="mb-8">
             <div className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)]">
-              <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2" />
-                Weekly Activity
-              </h2>
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-6 text-left w-full">
+              <TrendingUp className="h-5 w-5 mr-2 inline-block" />
+              <span className="inline-block">Weekly Activity</span>
+            </h2>
               <WeeklyChart data={weeklyActivity} />
             </div>
           </div>
@@ -308,10 +308,10 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center">
-            <Zap className="h-5 w-5 mr-2" />
-            Quick Actions
-          </h2>
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] dyslexia-text mb-4 flex items-center justify-start text-left">
+          <Zap className="h-5 w-5 mr-2" />
+          Quick Actions
+        </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action) => {
               const Icon = action.icon

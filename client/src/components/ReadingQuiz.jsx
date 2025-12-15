@@ -188,7 +188,7 @@ const ReadingQuiz = ({ questions, onComplete, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
               <Brain className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -211,7 +211,7 @@ const ReadingQuiz = ({ questions, onComplete, onClose }) => {
         {/* Progress Bar */}
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-6">
           <motion.div
-            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+            className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
             transition={{ duration: 0.3 }}

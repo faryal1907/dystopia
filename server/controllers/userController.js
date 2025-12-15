@@ -5,21 +5,46 @@ export const getProfile = async (req, res) => {
   try {
     const { userId } = req.params
     
+    // First, try to find user by supabaseId
     let user = await User.findOne({ supabaseId: userId })
     
     if (!user) {
-      // Create user profile if doesn't exist
-      user = new User({
-        supabaseId: userId,
-        email: req.user?.email || 'unknown@example.com'
-      })
-      await user.save()
+      // User doesn't exist, create it using upsert to avoid duplicates
+      user = await User.findOneAndUpdate(
+        { supabaseId: userId },
+        {
+          supabaseId: userId,
+          email: req.user?.email || `user-${userId}@example.com`
+        },
+        { 
+          new: true, 
+          upsert: true,
+          setDefaultsOnInsert: true
+        }
+      )
     }
     
     res.json(user)
   } catch (error) {
+    // Handle duplicate key errors (email already exists)
+    if (error.code === 11000) {
+      // Try to find user by email instead
+      const existingUser = await User.findOne({ email: req.user?.email })
+      if (existingUser) {
+        return res.json(existingUser)
+      }
+      
+      return res.status(409).json({ 
+        message: 'User with this email already exists',
+        error: 'DUPLICATE_EMAIL'
+      })
+    }
+    
     console.error('Error fetching user profile:', error)
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 }
 
@@ -41,6 +66,18 @@ export const updateProfile = async (req, res) => {
     
     res.json(user)
   } catch (error) {
+    if (error.code === 11000) {
+      // Duplicate key error - try to get existing user
+      const existingUser = await User.findOne({ supabaseId: req.params.userId })
+      if (existingUser) {
+        return res.json(existingUser)
+      }
+      return res.status(409).json({ 
+        message: 'Duplicate entry',
+        field: Object.keys(error.keyPattern)[0]
+      })
+    }
+    
     console.error('Error updating user profile:', error)
     res.status(500).json({ message: 'Server error' })
   }
@@ -81,6 +118,21 @@ export const updateSettings = async (req, res) => {
     
     res.json(user.settings)
   } catch (error) {
+    if (error.code === 11000) {
+      // Duplicate key error - try to get existing user
+      const existingUser = await User.findOne({ supabaseId: req.params.userId })
+      if (existingUser) {
+        // Update settings on existing user
+        existingUser.settings = { ...existingUser.settings, ...req.body.settings }
+        await existingUser.save()
+        return res.json(existingUser.settings)
+      }
+      return res.status(409).json({ 
+        message: 'Duplicate entry',
+        field: Object.keys(error.keyPattern)[0]
+      })
+    }
+    
     console.error('Error updating user settings:', error)
     res.status(500).json({ message: 'Server error' })
   }
@@ -146,6 +198,24 @@ export const addAchievement = async (req, res) => {
     
     res.json(user.achievements)
   } catch (error) {
+    if (error.code === 11000) {
+      // Duplicate key error - try to get existing user and add achievement
+      const existingUser = await User.findOne({ supabaseId: req.params.userId })
+      if (existingUser) {
+        existingUser.achievements.push({
+          ...req.body,
+          earnedAt: new Date()
+        })
+        existingUser.updatedAt = Date.now()
+        await existingUser.save()
+        return res.json(existingUser.achievements)
+      }
+      return res.status(409).json({ 
+        message: 'Duplicate entry',
+        field: Object.keys(error.keyPattern)[0]
+      })
+    }
+    
     console.error('Error adding achievement:', error)
     res.status(500).json({ message: 'Server error' })
   }

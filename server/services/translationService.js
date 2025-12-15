@@ -39,6 +39,7 @@ const LANGUAGES = {
   'ro': 'Romanian',
   'hu': 'Hungarian',
   'bg': 'Bulgarian',
+  'ur': 'Urdu',  
 };
 
 // Language code mapping for MyMemory
@@ -58,6 +59,7 @@ const detectLanguage = (text) => {
     'ja': /[\u3040-\u309f\u30a0-\u30ff]/,  // Japanese hiragana/katakana
     'ko': /[\uac00-\ud7af]/,  // Korean
     'ar': /[\u0600-\u06ff]/,  // Arabic
+    'ur': /[\u0600-\u06ff\u0750-\u077f]/,  // Urdu (Arabic script + Urdu-specific)
     'th': /[\u0e00-\u0e7f]/,  // Thai
     'he': /[\u0590-\u05ff]/,  // Hebrew
     'ru': /[\u0400-\u04ff]/,  // Cyrillic
@@ -84,6 +86,7 @@ const detectLanguage = (text) => {
     'sv': ['och', 'är', 'det', 'en', 'att', 'som', 'för', 'på', 'av', 'med'],
     'pl': ['to', 'jest', 'się', 'nie', 'na', 'w', 'z', 'do', 'od', 'dla'],
     'tr': ['bir', 've', 'bu', 'için', 'ile', 'var', 'mi', 'ne', 'ben', 'sen'],
+    'ur': ['میں', 'ہے', 'ہیں', 'کا', 'کی', 'کے', 'کو', 'سے', 'پر', 'تھا', 'تھی', 'ہو', 'ہے'],  // ADD THIS LINE - Common Urdu words
   };
 
   for (const [lang, words] of Object.entries(commonWords)) {

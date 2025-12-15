@@ -57,6 +57,7 @@ const Settings = () => {
       
       // Apply font settings to root
       document.documentElement.style.fontSize = `${fontSize}px`
+      document.documentElement.style.setProperty('--font-family', getFontFamilyCSS(fontFamily))
       
       setSuccess('Settings saved successfully!')
       setTimeout(() => setSuccess(''), 3000)
@@ -66,10 +67,21 @@ const Settings = () => {
     }
   }
 
-  // Apply font settings on mount
+  const getFontFamilyCSS = (fontValue) => {
+    const fontMap = {
+      'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      'serif': 'Georgia, "Times New Roman", serif',
+      'mono': '"Courier New", Courier, monospace',
+      'opendyslexic': '"OpenDyslexic", "Comic Sans MS", cursive'
+    }
+    return fontMap[fontValue] || fontMap['system']
+  }
+
+  // Apply font settings on mount and when they change
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`
-  }, [fontSize])
+    document.documentElement.style.setProperty('--font-family', getFontFamilyCSS(fontFamily))
+  }, [fontSize, fontFamily])
 
   const fontFamilies = [
     { value: 'system', label: 'System Default', class: 'font-sans' },
@@ -77,7 +89,7 @@ const Settings = () => {
     { value: 'mono', label: 'Monospace', class: 'font-mono' },
     { value: 'opendyslexic', label: 'OpenDyslexic', class: 'dyslexia-text' }
   ]
-
+  
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -160,7 +172,7 @@ const Settings = () => {
           className="bg-[var(--bg-primary)] rounded-xl p-6 border border-[var(--border-color)] shadow-lg mb-6"
         >
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
               {isDark ? <Moon className="h-6 w-6 text-white" /> : <Sun className="h-6 w-6 text-white" />}
             </div>
             <div>

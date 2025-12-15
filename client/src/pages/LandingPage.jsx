@@ -115,16 +115,16 @@ const LandingPage = () => {
       icon: Focus,
       title: 'Focus Mode',
       description: 'Distraction-free reading with customizable speed, pause-to-lookup, and visual progress tracking.',
-      gradient: 'from-purple-500 via-purple-600 to-pink-500',
-      iconBg: 'from-purple-400 to-pink-400',
+      gradient: 'from-purple-600 to-purple-700',
+      iconBg: 'from-purple-600 to-purple-700',
       tag: 'Productivity'
     },
     {
       icon: FileText,
       title: 'AI Summarization',
       description: 'Reduce reading time by 70-80% with Hugging Face AI. Three length options, instant insights.',
-      gradient: 'from-pink-500 via-rose-600 to-red-500',
-      iconBg: 'from-pink-400 to-rose-400',
+      gradient: 'from-purple-600 to-purple-700',
+      iconBg: 'from-purple-600 to-purple-700',
       tag: 'Time Saver'
     },
     {
@@ -173,7 +173,7 @@ const LandingPage = () => {
 
   const testimonials = [
     {
-      name: 'Sarah Johnson',
+      name: 'Haleema Khan',
       role: 'Student',
       image: '👩‍🎓',
       content: 'DYSTOPIA transformed my reading experience! The AI summarization saves hours, and the speed reading trainer improved my WPM by 150%.',
@@ -181,7 +181,7 @@ const LandingPage = () => {
       highlight: 'Speed Reading'
     },
     {
-      name: 'Michael Chen',
+      name: 'Farzana Jabeen',
       role: 'Teacher',
       image: '👨‍🏫',
       content: 'I recommend DYSTOPIA to all my students with reading difficulties. The comprehension quizzes and analytics help track real progress.',
@@ -189,7 +189,7 @@ const LandingPage = () => {
       highlight: 'Quiz & Analytics'
     },
     {
-      name: 'Emma Williams',
+      name: 'Tayyaba Mateen',
       role: 'Parent',
       image: '👩‍💼',
       content: 'My daughter loves the gamification! Reading streaks, achievements, and the focus mode keep her engaged for hours.',
@@ -206,114 +206,100 @@ const LandingPage = () => {
   ]
 
   return (
-    <div className="min-h-screen overflow-hidden">
-      {/* Hero Section - Enhanced */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-900/20 dark:to-purple-900/20 overflow-hidden">
-        {/* Animated Background Shapes */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="floating absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl"></div>
-          <div className="floating absolute top-40 right-20 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
-          <div className="floating absolute bottom-20 left-1/3 w-80 h-80 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div className="min-h-screen overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Hero Section - Simplified Design */}
+      <section ref={heroRef} className="relative min-h-screen flex items-center bg-gradient-to-b from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
           <div className="text-center">
-            {/* Badge */}
+            {/* Banner Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full border border-purple-200 dark:border-purple-800 mb-6"
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 rounded-lg mb-6 shadow-md"
             >
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+              <Star className="h-4 w-4 text-white" />
+              <span className="text-sm font-medium text-white">
                 AI-Powered Reading Platform
               </span>
-              <span className="px-2 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full">
+              <span className="px-2 py-0.5 bg-purple-800 text-white text-xs rounded">
                 NEW
               </span>
             </motion.div>
-
+  
+            {/* Main Heading */}
             <motion.h1 
-              className="hero-title text-5xl sm:text-6xl lg:text-7xl font-bold dyslexia-text text-[var(--text-primary)] mb-6 leading-tight"
+              className="hero-title text-5xl sm:text-6xl lg:text-7xl font-bold dyslexia-text mb-6 leading-tight"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              Reading Made
+              <span className="text-gray-800 dark:text-gray-200">Reading Made</span>
               <br />
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Simple & Powerful
-              </span>
+              <span className="text-purple-600 dark:text-purple-400">Simple &</span>
+              <br />
+              <span className="text-purple-700 dark:text-purple-300">Powerful</span>
             </motion.h1>
             
+            {/* Description */}
             <motion.p 
-              className="hero-subtitle text-xl lg:text-2xl text-[var(--text-secondary)] mb-8 max-w-3xl mx-auto dyslexia-text leading-relaxed"
+              className="hero-subtitle text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto dyslexia-text leading-relaxed"
             >
-              7 AI-powered features designed for dyslexia and reading difficulties. 
-              <span className="font-semibold text-[var(--text-primary)]"> Text-to-speech, translation, focus mode, summarization, quizzes, speed training, and analytics.</span> All free forever.
+              7 AI-powered features designed for dyslexia and reading difficulties. Text-to-speech, translation, focus mode, summarization, quizzes, speed training, and analytics. All free forever.
             </motion.p>
             
-            {/* Feature Pills */}
+            {/* Feature Buttons - Horizontal */}
             <motion.div 
-              className="flex flex-wrap justify-center gap-3 mb-10"
+              className="flex flex-wrap justify-center gap-4 mb-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <button className="px-6 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2 shadow-sm">
+                <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span>AI Summarization</span>
+              </button>
+              <button className="px-6 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2 shadow-sm">
+                <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span>Speed Reading</span>
+              </button>
+              <button className="px-6 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2 shadow-sm">
+                <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span>Smart Quizzes</span>
+              </button>
+              <button className="px-6 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2 shadow-sm">
+                <Languages className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span>50+ Languages</span>
+              </button>
+            </motion.div>
+  
+            {/* Main CTA Button */}
+            <motion.div 
+              className="hero-buttons"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
             >
-              {['AI Summarization', 'Speed Reading', 'Smart Quizzes', '50+ Languages'].map((pill, i) => (
-                <span 
-                  key={i}
-                  className="px-4 py-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-full text-sm font-medium text-[var(--text-primary)] border border-gray-200 dark:border-gray-700"
-                >
-                  ✨ {pill}
-                </span>
-              ))}
-            </motion.div>
-
-            <motion.div 
-              className="hero-buttons flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6"
-            >
               {user ? (
                 <Link
                   to="/dashboard"
-                  className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-semibold rounded-2xl hover:shadow-2xl hover:scale-105 transition-all duration-300 dyslexia-text"
+                  className="inline-flex items-center px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 dyslexia-text text-lg"
                 >
-                  <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />
+                  <Star className="mr-2 h-5 w-5" />
                   Go to Dashboard
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               ) : (
-                <>
-                  <Link
-                    to="/register"
-                    className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-semibold rounded-2xl hover:shadow-2xl hover:scale-105 transition-all duration-300 dyslexia-text"
-                  >
-                    <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />
-                    Start Free Today
-                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                  <Link
-                    to="/text-to-speech"
-                    className="group inline-flex items-center px-8 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-[var(--text-primary)] font-semibold rounded-2xl hover:bg-white dark:hover:bg-gray-800 hover:scale-105 transition-all duration-300 border-2 border-gray-200 dark:border-gray-700 dyslexia-text"
-                  >
-                    <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                    Try Demo
-                  </Link>
-                </>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 dyslexia-text text-lg"
+                >
+                  <Star className="mr-2 h-5 w-5" />
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
               )}
             </motion.div>
           </div>
         </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-        >
-          <div className="w-6 h-10 border-2 border-purple-400 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-purple-400 rounded-full mt-2"></div>
-          </div>
-        </motion.div>
       </section>
 
       {/* Stats Section - Enhanced */}
@@ -332,7 +318,7 @@ const LandingPage = () => {
                   <div className="inline-flex p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl mb-4 border border-gray-200 dark:border-gray-700">
                     <Icon className={`h-8 w-8 ${stat.color}`} />
                   </div>
-                  <div className="stat-number text-4xl lg:text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 dyslexia-text" data-value={stat.number.replace(/,/g, '')}>
+                  <div className="stat-number text-4xl lg:text-5xl font-bold bg-gradient-to-r 'from-purple-600 to-purple-700' mb-2 dyslexia-text" data-value={stat.number.replace(/,/g, '')}>
                     0{stat.suffix}
                   </div>
                   <div className="text-[var(--text-secondary)] font-medium dyslexia-text">
@@ -409,7 +395,7 @@ const LandingPage = () => {
       </section>
 
       {/* AI Features Highlight */}
-      <section className="py-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white">
+      <section className="py-20 bg-gradient-to-br from-purple-600 to-purple-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl lg:text-5xl font-bold dyslexia-text mb-4">
@@ -493,7 +479,7 @@ const LandingPage = () => {
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
             >
-              <div className="relative bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 p-12 rounded-3xl border-2 border-indigo-200 dark:border-indigo-800">
+              <div className="relative bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/20 dark:to-purple-900/20 p-12 rounded-3xl border-2 border-purple-200 dark:border-purple-800">
                 {/* Floating Icons */}
                 <div className="floating absolute top-10 left-10 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
                   <Brain className="h-8 w-8 text-purple-600" />
@@ -507,7 +493,7 @@ const LandingPage = () => {
 
                 {/* Center Icon */}
                 <div className="flex items-center justify-center">
-                  <div className="p-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full">
+                  <div className="p-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full">
                     <Heart className="h-16 w-16 text-white" />
                   </div>
                 </div>
@@ -572,7 +558,7 @@ const LandingPage = () => {
 
                   {/* Highlight Tag */}
                   <div className="mb-4">
-                    <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
+                    <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
                       ⭐ {testimonial.highlight}
                     </span>
                   </div>
@@ -598,7 +584,7 @@ const LandingPage = () => {
 
       {/* CTA Section - Enhanced */}
       <section className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-700"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6bTAtMTBjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6bTAgMTBjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
 
         <div className="relative max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
